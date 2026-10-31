@@ -1,0 +1,19 @@
+{
+  "title": "Fragile Cargo",
+  "description": "Stow awkward parcels on your delivery boat's deck grid, then slide them mid-crossing to lean against announced waves — sustained tilt sends the low-side cargo overboard. Deliver the manifest, bonus freight pays extra.",
+  "entrypoint": "index.html",
+  "license": "MIT",
+  "genre": ["puzzle", "arcade"],
+  "themes": ["maritime", "logistics", "balance"],
+  "controls": [
+    "Mouse/Touch: drag parcels from the dock, tap a parcel then a green cell to move it",
+    "R or Rotate button: rotate the parcel being dragged",
+    "P or Esc: pause",
+    "M: mute"
+  ],
+  "credits": [
+    "Concept and game design direction: Cédric Bernadac",
+    "Game made by Z-Code"
+  ],
+  "cover": "cover.png"
+}

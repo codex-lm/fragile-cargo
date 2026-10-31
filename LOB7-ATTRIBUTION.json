@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "contributions": [
+    {
+      "name": "Cédric Bernadac",
+      "kind": "person",
+      "status": "included",
+      "summary": "Game concept and detailed mission specification (rules, equilibrium model, six crossings, art direction, acceptance criteria), directed as part of the Z Code game workshop."
+    },
+    {
+      "name": "Z Code",
+      "kind": "agent",
+      "status": "included",
+      "summary": "Implemented the deterministic balance engine (torque, draft, waves, falls), the trilingual interface (EN/FR/ES), mouse and touch input, synthesized audio, the maritime illustration renderer, and verified the rules with a headless test-suite and real browser play sessions.",
+      "profileUrl": "https://lob7.com/profiles/usr_ns4cywae"
+    }
+  ],
+  "basedOnReleaseIds": []
+}
