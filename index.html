@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Fragile Cargo — Cargaison fragile</title>
+<style>
+/* ============================================================
+   Cargaison fragile / Fragile Cargo — palette "Baie lumineuse"
+   (consigne artDirection : famille maritime claire, cyan+vermillon,
+   distincte des créations précédentes ; variables centralisées)
+   ============================================================ */
+:root{
+  --sky:#fdf6e3; --sky-low:#ffe9b8; --sun:#ffd76a;
+  --sea:#35c4d7; --sea-deep:#1fa8bd; --sea-foam:#bff0f4;
+  --hull:#e2502f; --hull-dark:#b23a20; --hull-line:#7a2a18;
+  --deck:#f2d8a7; --deck-line:#d9b87f; --quay:#b98a5a; --quay-dark:#8a5a33;
+  --ink:#25333c; --ink-soft:#51646f;
+  --accent:#e2502f; --good:#2e9e6b; --warn:#e0a52e; --danger:#e5484d;
+  --card:#fffdf6; --card-edge:#e8ddc2;
+  --pkg1:#ff9d3b; --pkg2:#62c99a; --pkg3:#7cc7ff; --pkg4:#ffd23f;
+  --pkg5:#b79bf2; --pkg6:#5ad0e6; --pkg7:#b98a5a; --pkg8:#9fb3c8; --pkg9:#f4a261; --pkg10:#4a5568;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:"Nunito","Segoe UI",system-ui,-apple-system,sans-serif;
+  background:var(--sky); color:var(--ink); overflow:hidden;
+  touch-action:none; user-select:none; -webkit-user-select:none;
+}
+#app{position:fixed; inset:0; display:flex; flex-direction:column;}
+/* ---------- header ---------- */
+#hdr{
+  display:flex; align-items:center; gap:8px; padding:6px 10px;
+  background:linear-gradient(180deg,#fffdf6,#f7eed6);
+  border-bottom:3px solid var(--card-edge); z-index:30; flex:0 0 auto;
+}
+#hdr .logo{font-weight:900; font-size:15px; letter-spacing:.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+#hdr .logo .boat{color:var(--hull);}
+#hdr .sp{flex:1;}
+.hbtn{
+  border:2px solid var(--ink); background:var(--card); color:var(--ink);
+  border-radius:10px; padding:5px 9px; font-weight:800; font-size:13px;
+  cursor:pointer; line-height:1; box-shadow:0 2px 0 var(--ink);
+}
+.hbtn:active{transform:translateY(1px); box-shadow:0 1px 0 var(--ink);}
+.hbtn.sel{background:var(--ink); color:var(--card);}
+/* ---------- stage ---------- */
+#stage{position:relative; flex:1 1 auto; min-height:0;}
+#cv{position:absolute; inset:0; width:100%; height:100%; display:block;}
+/* wave banner */
+#waveBanner{
+  position:absolute; top:8px; left:50%; transform:translateX(-50%) translateY(-72px);
+  display:flex; align-items:center; gap:10px; padding:8px 14px;
+  background:var(--card); border:3px solid var(--warn); border-radius:14px;
+  font-weight:900; font-size:14px; box-shadow:0 4px 0 rgba(37,51,60,.25);
+  transition:transform .25s ease; z-index:20; max-width:92%; white-space:nowrap;
+}
+#waveBanner.show{transform:translateX(-50%) translateY(0);}
+#waveBanner.live{border-color:var(--danger); background:#fff2ee; animation:pulse .5s infinite alternate;}
+#waveBanner .arr{font-size:20px; animation:nudge .5s infinite alternate;}
+@keyframes pulse{from{box-shadow:0 0 0 0 rgba(229,72,77,.4);}to{box-shadow:0 0 0 8px rgba(229,72,77,0);}}
+@keyframes nudge{from{transform:translateX(0);}to{transform:translateX(4px);}}
+#waveBanner .arr.l{animation-name:nudgeL;}
+@keyframes nudgeL{from{transform:translateX(0);}to{transform:translateX(-4px);}}
+/* danger vignette */
+#dangerV{position:absolute; inset:0; pointer-events:none; z-index:15; opacity:0;
+  box-shadow:inset 0 0 60px 18px rgba(229,72,77,.55); transition:opacity .2s;}
+/* toast (tutorials / hints) */
+#toast{
+  position:absolute; left:50%; bottom:14px; transform:translateX(-50%) translateY(20px);
+  max-width:min(460px,92%); background:var(--ink); color:var(--card);
+  padding:8px 12px; border-radius:12px; font-size:13px; font-weight:700;
+  opacity:0; transition:all .25s ease; z-index:22; text-align:center; pointer-events:none;
+}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+/* ---------- bottom hud ---------- */
+#hud{
+  flex:0 0 auto; display:flex; gap:10px; align-items:stretch; padding:8px 10px;
+  background:linear-gradient(0deg,#fffdf6,#f7eed6); border-top:3px solid var(--card-edge); z-index:30;
+}
+.panel{background:var(--card); border:2px solid var(--card-edge); border-radius:12px; padding:6px 10px;}
+.panel h4{margin:0 0 4px; font-size:11px; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-soft);}
+#manifest{display:flex; gap:6px; flex-wrap:wrap; align-items:center; min-height:34px;}
+.mchip{
+  width:30px; height:30px; border-radius:8px; border:2px solid var(--ink);
+  display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px;
+  position:relative; background:#fff;
+}
+.mchip .w{position:absolute; bottom:-6px; right:-6px; background:var(--ink); color:#fff;
+  border-radius:8px; font-size:9px; padding:0 3px; font-weight:800;}
+.mchip.ok{outline:3px solid var(--good); outline-offset:1px;}
+.mchip.lost{opacity:.35; filter:grayscale(1);}
+.mchip.bonus{border-style:dashed;}
+/* tilt gauge */
+#tiltPanel{min-width:118px;}
+#tiltGauge{position:relative; height:44px; overflow:hidden; border-radius:8px;
+  background:linear-gradient(90deg,#f6d365 0%,#2e9e6b 18%,#2e9e6b 82%,#f6d365 100%);border:2px solid var(--ink);}
+#tiltGauge .tick{position:absolute; top:0; bottom:0; width:2px; background:rgba(37,51,60,.35);}
+#tiltNeedle{position:absolute; top:2px; bottom:2px; width:6px; margin-left:-3px; left:50%;
+  background:var(--ink); border-radius:3px; transition:left .08s linear;}
+#tiltGauge.crit{background:linear-gradient(90deg,#e5484d 0%,#2e9e6b 18%,#2e9e6b 82%,#e5484d 100%);}
+#tiltVal{font-size:11px; font-weight:800; text-align:center; color:var(--ink-soft);}
+/* load gauge */
+#loadPanel{min-width:96px;}
+#loadBar{position:relative; height:44px; border-radius:8px; border:2px solid var(--ink); overflow:hidden;
+  background:repeating-linear-gradient(0deg,#eee6cf 0 6px,#f6efdc 6px 12px);}
+#loadFill{position:absolute; left:0; right:0; bottom:0; height:0%; background:var(--good); transition:height .2s ease;}
+#loadBar.warn #loadFill{background:var(--warn);}
+#loadBar.crit #loadFill{background:var(--danger);}
+#loadBar .limit{position:absolute; left:0; right:0; bottom:80%; height:0; border-top:2px dashed var(--ink); opacity:.5;}
+#loadVal{font-size:11px; font-weight:800; text-align:center; color:var(--ink-soft);}
+/* actions */
+#actions{display:flex; gap:8px; align-items:center; margin-left:auto;}
+.big{
+  border:3px solid var(--ink); border-radius:14px; padding:10px 16px; font-weight:900; font-size:15px;
+  cursor:pointer; box-shadow:0 4px 0 var(--ink); background:var(--accent); color:#fff; line-height:1;
+}
+.big:active{transform:translateY(2px); box-shadow:0 2px 0 var(--ink);}
+.big.alt{background:var(--card); color:var(--ink);}
+.big:disabled{opacity:.45; cursor:not-allowed; transform:none;}
+/* ---------- screens ---------- */
+.screen{
+  position:absolute; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+  background:rgba(253,246,227,.88); backdrop-filter:blur(2px); padding:14px;
+}
+.screen.hidden{display:none;}
+.card{
+  background:var(--card); border:3px solid var(--ink); border-radius:20px;
+  box-shadow:0 8px 0 rgba(37,51,60,.28); padding:20px 24px; max-width:520px; width:100%;
+  max-height:92%; overflow:auto; text-align:center;
+}
+.card h1{margin:2px 0 2px; font-size:30px; letter-spacing:.5px;}
+.card h1 .boat{color:var(--hull);}
+.card h2{margin:2px 0 10px; font-size:18px; color:var(--ink-soft); font-weight:700;}
+.card .row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px;}
+.rules{text-align:left; font-size:14px; line-height:1.45; margin:8px 0;}
+.rules b{color:var(--hull-dark);}
+.lvlgrid{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:10px 0;}
+.lvlbtn{
+  width:52px; height:52px; border-radius:12px; border:3px solid var(--ink); font-weight:900;
+  font-size:18px; cursor:pointer; background:var(--card); box-shadow:0 3px 0 var(--ink); position:relative;
+}
+.lvlbtn:disabled{opacity:.35; cursor:not-allowed; box-shadow:none;}
+.lvlbtn .st{position:absolute; bottom:1px; left:0; right:0; font-size:9px; color:var(--warn);}
+.scoreline{display:flex; justify-content:space-between; font-size:15px; margin:3px 0; font-weight:700;}
+.scoreline.total{border-top:2px solid var(--card-edge); margin-top:8px; padding-top:8px; font-size:18px; font-weight:900;}
+.stars{font-size:26px; letter-spacing:4px; margin:4px 0;}
+.langrow{display:flex; gap:6px; justify-content:center; margin-top:10px;}
+.kbd{display:inline-block; border:2px solid var(--ink); border-bottom-width:4px; border-radius:6px;
+  padding:0 6px; font-weight:900; font-size:12px; background:#fff; margin:0 2px;}
+.small{font-size:12px; color:var(--ink-soft);}
+@media (max-width:560px){
+  #hdr .logo{font-size:13px;}
+  .card{padding:14px;}
+  .card h1{font-size:24px;}
+  #hud{flex-wrap:wrap;}
+  #actions{margin-left:0; width:100%; justify-content:center;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hdr">
+    <div class="logo"><span class="boat">⛵</span> <span id="hdrTitle">Fragile Cargo</span></div>
+    <div class="sp"></div>
+    <button class="hbtn" id="btnSound" title="Sound">🔊</button>
+    <button class="hbtn" id="btnHome" title="Home">⌂</button>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="waveBanner"><span class="arr" id="waveArr">➜</span><span id="waveTxt"></span></div>
+    <div id="dangerV"></div>
+    <div id="toast"></div>
+
+    <div class="screen hidden" id="scrHome"><div class="card">
+      <h1><span class="boat">⛵</span> <span data-i="title">Fragile Cargo</span></h1>
+      <h2 data-i="tagline">Stow it well. Steady her through the waves.</h2>
+      <div class="row">
+        <button class="big" id="btnPlay" data-i="play">Play</button>
+        <button class="big alt" id="btnHow" data-i="howto">How to play</button>
+      </div>
+      <div class="lvlgrid" id="lvlGrid"></div>
+      <div class="langrow">
+        <button class="hbtn lang" data-lang="en">EN</button>
+        <button class="hbtn lang" data-lang="fr">FR</button>
+        <button class="hbtn lang" data-lang="es">ES</button>
+      </div>
+      <div class="small" id="homeBest"></div>
+    </div></div>
+
+    <div class="screen hidden" id="scrHow"><div class="card">
+      <h2 data-i="howtoTitle">How to play</h2>
+      <div class="rules" id="howRules"></div>
+      <div class="row"><button class="big alt" id="btnHowOk" data-i="ok">Got it</button></div>
+    </div></div>
+
+    <div class="screen hidden" id="scrPause"><div class="card">
+      <h2 data-i="pauseTitle">Paused</h2>
+      <div class="row">
+        <button class="big" id="btnResume" data-i="resume">Resume</button>
+        <button class="big alt" id="btnReStack" data-i="restack">Restack</button>
+        <button class="big alt" id="btnQuit" data-i="quit">Quit</button>
+      </div>
+    </div></div>
+
+    <div class="screen hidden" id="scrArrival"><div class="card">
+      <h1 id="arrTitle">Delivered!</h1>
+      <div class="stars" id="arrStars"></div>
+      <div id="arrLines"></div>
+      <div class="row">
+        <button class="big" id="btnNext" data-i="next">Next crossing</button>
+        <button class="big alt" id="btnAgain" data-i="retry">Sail again</button>
+        <button class="big alt" id="btnArrHome" data-i="home">Home</button>
+      </div>
+    </div></div>
+
+    <div class="screen hidden" id="scrFail"><div class="card">
+      <h1 id="failTitle">Lost at sea…</h1>
+      <div id="failTxt" class="rules" style="text-align:center"></div>
+      <div class="row">
+        <button class="big" id="btnRetry" data-i="retry">Restack and retry</button>
+        <button class="big alt" id="btnFailHome" data-i="home">Home</button>
+      </div>
+    </div></div>
+  </div>
+
+  <div id="hud">
+    <div class="panel"><h4 data-i="manifest">Manifest</h4><div id="manifest"></div></div>
+    <div class="panel" id="tiltPanel"><h4 data-i="tilt">Tilt</h4>
+      <div id="tiltGauge"><div class="tick" style="left:20%"></div><div class="tick" style="left:50%"></div><div class="tick" style="left:80%"></div><div id="tiltNeedle"></div></div>
+      <div id="tiltVal">0°</div>
+    </div>
+    <div class="panel" id="loadPanel"><h4 data-i="load">Load</h4>
+      <div id="loadBar"><div id="loadFill"></div><div class="limit"></div></div>
+      <div id="loadVal">0 / 0</div>
+    </div>
+    <div id="actions">
+      <button class="big alt" id="btnRotate" data-i="rotate">Rotate ⇄</button>
+      <button class="big" id="btnDepart" data-i="depart">Set sail!</button>
+      <button class="big alt" id="btnPause" data-i="pause">Pause</button>
+    </div>
+  </div>
+</div>
+<script>
+"use strict";
+/* ================================================================
+   FRAGILE CARGO / CARGAISON FRAGILE — self-contained game
+   Engine: deterministic fixed-step balance model (no physics lib).
+   One file, no network, no deps. Z Code — 2026. MIT.
+   ================================================================ */
+
+/* ---------------- tuning (audit point) ---------------- */
+const TUNE = {
+  STEP: 1/60,            // fixed simulation step (frequency independent)
+  TILT_K: 1.8,           // degrees per torque unit (weight × arm)
+  TILT_MAX: 34,          // clamp
+  TAU: 0.55,             // tilt smoothing time constant (s)
+  DANGER_TILT: 18,       // degrees: danger zone starts
+  DANGER_TIME: 1.4,      // s in danger zone before cargo falls
+  DANGER_DECAY: 1.6,     // danger meter decay rate ×
+  FALL_GRACE: 0.5,       // s of grace after a fall
+  OVERLOAD_AMP: 1.2,     // wave amplification per unit overload
+  MAX_DRAFT: 1.25,       // weight/capacity above which departure refused
+  WAVE_RAMP: 0.8,        // s ramp in/out of a wave
+  MOVE_MS: 280,          // cargo slide animation
+  WARN: 2.5,             // default wave warning time (s)
+  SCORE_REQ: 100, SCORE_BONUS: 150, SCORE_SAFE: 2, // pts/s outside danger
+};
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+en:{
+  title:"Fragile Cargo", tagline:"Stow it well. Steady her through the waves.",
+  play:"Play", howto:"How to play", howtoTitle:"How to play", ok:"Got it",
+  resume:"Resume", restack:"Restack", quit:"Quit", home:"Home", next:"Next crossing",
+  retry:"Sail again", retryFail:"Restack and retry", pause:"Pause", depart:"Set sail!",
+  rotate:"Rotate ⇄", manifest:"Manifest", tilt:"Tilt", load:"Load",
+  wavePort:"WAVE — PORT SIDE LOW", waveStar:"WAVE — STARBOARD LOW",
+  waveIn:"in {s}s", waveNow:"hitting now!",
+  arrTitle:"Delivered!", failTitle:"Lost at sea…",
+  sReq:"Required cargo delivered", sBonus:"Bonus cargo delivered", sSafe:"Steady sailing",
+  sTotal:"Total score", best:"Best: {n}", locked:"Sail earlier crossings to unlock.",
+  tut1:"Welcome aboard! Drag every parcel from the dock onto the deck. Heavy parcels near the middle — that keeps her level.",
+  tut2:"See the LOAD gauge: the more weight you take, the deeper she sits and the harder waves hit. Press SET SAIL when the manifest is aboard.",
+  tut3:"A wave is coming: {side}. Slide one parcel towards the OPPOSITE side to lean against it.",
+  tut4:"Red needle = cargo at risk: stay tilted too long and the low-side parcels fall. Tap a parcel, then a green cell.",
+  lostOne:"{name} fell overboard!", lostReq:"A required parcel fell overboard — this crossing failed.",
+  rules:[
+    "<b>Before departure</b> — drag parcels from the dock onto the deck grid, rotate with <span class='kbd'>R</span> or the button. The manifest must be aboard; extra parcels are bonus weight (and points).",
+    "<b>Weight</b> — total load sinks the hull (LOAD gauge). Overloaded past the red line, the crossing is refused; past the amber line, waves hit harder.",
+    "<b>Balance</b> — weight far from the centre tilts the ship (TILT gauge). Keep the needle out of the red.",
+    "<b>Waves</b> are announced: the banner tells you which side will dip, seconds before it hits.",
+    "<b>During the crossing</b> — tap a parcel, then a green cell, to slide it. One parcel at a time. Sustained red tilt makes cargo on the low side fall overboard.",
+    "<b>Deliver</b> every required parcel to win. Bonus parcels are +150 each. Steady sailing pays +2/s."
+  ],
+  lvlNames:["First crossing","Balancing act","Fresh breeze","Moving day","The narrows","Open sea"],
+  typeNames:{bowl:"Goldfish bowl",crate:"Fish crate",barrel:"Barrel",coop:"Hencoop",wheel:"Cheese wheel",clock:"Grandfather clock",sofa:"Sofa",surf:"Surfboard",washer:"Washing machine",piano:"Piano"},
+},
+fr:{
+  title:"Cargaison fragile", tagline:"Bien arrimer, bien traverser.",
+  play:"Jouer", howto:"Comment jouer", howtoTitle:"Comment jouer", ok:"Compris",
+  resume:"Reprendre", restack:"Recharger", quit:"Quitter", home:"Accueil", next:"Traversée suivante",
+  retry:"Rejouer", retryFail:"Recharger et réessayer", pause:"Pause", depart:"Lever l'ancre !",
+  rotate:"Pivoter ⇄", manifest:"Manifeste", tilt:"Gîte", load:"Charge",
+  wavePort:"VAGUE — BÂBORD DANS L'EAU", waveStar:"VAGUE — TRIBORD DANS L'EAU",
+  waveIn:"dans {s} s", waveNow:"frappe maintenant !",
+  arrTitle:"Livré !", failTitle:"Perdu en mer…",
+  sReq:"Cargaison requise livrée", sBonus:"Cargaison bonus livrée", sSafe:"Barre régulière",
+  sTotal:"Score total", best:"Record : {n}", locked:"Termine les traversées précédentes pour débloquer.",
+  tut1:"Bienvenue à bord ! Dépose chaque colis du quai sur le pont. Les colis lourds au milieu — le bateau reste droit.",
+  tut2:"Regarde la jauge CHARGE : plus tu embarques, plus le bateau s'enfonce et plus les vagues frappent fort. Lève l'ancre quand le manifeste est à bord.",
+  tut3:"Une vague arrive : {side}. Fais glisser un colis du côté OPPOSÉ pour contrer.",
+  tut4:"Aiguille dans le rouge = cargaison en péril : trop longtemps incliné, les colis du côté bas tombent. Touche un colis, puis une case verte.",
+  lostOne:"{name} est tombé à l'eau !", lostReq:"Un colis requis est tombé à l'eau — traversée perdue.",
+  rules:[
+    "<b>Avant le départ</b> — glisse les colis du quai vers la grille du pont, pivote-les avec <span class='kbd'>R</span> ou le bouton. Le manifeste doit être à bord ; les colis en plus sont du bonus (et des points).",
+    "<b>Poids</b> — la charge totale enfonce la coque (jauge CHARGE). Au-delà de la ligne rouge, départ refusé ; au-delà de l'ambre, les vagues frappent plus fort.",
+    "<b>Équilibre</b> — un poids loin du centre fait gîter le bateau (jauge GÎTE). Garde l'aiguille hors du rouge.",
+    "<b>Les vagues</b> sont annoncées : le bandeau dit quel côté va plonger, quelques secondes avant.",
+    "<b>Pendant la traversée</b> — touche un colis puis une case verte pour le faire glisser. Un colis à la fois. Une gîte rouge prolongée fait tomber les colis du côté bas.",
+    "<b>Livre</b> tous les colis requis pour gagner. Chaque colis bonus vaut +150. La régularité paie +2/s."
+  ],
+  lvlNames:["Première traversée","Jeu de balance","Coup de frais","Déménagement","Le détroit","Pleine mer"],
+  typeNames:{bowl:"Bocal à poisson",crate:"Caisse de poisson",barrel:"Tonneau",coop:"Cage à poules",wheel:"Meule de fromage",clock:"Horloge comtoise",sofa:"Canapé",surf:"Planche de surf",washer:"Machine à laver",piano:"Piano à queue"},
+},
+es:{
+  title:"Carga frágil", tagline:"Bien estibado, bien cruzado.",
+  play:"Jugar", howto:"Cómo jugar", howtoTitle:"Cómo jugar", ok:"Entendido",
+  resume:"Seguir", restack:"Reestibar", quit:"Salir", home:"Inicio", next:"Travesía siguiente",
+  retry:"Repetir", retryFail:"Reestibar y reintentar", pause:"Pausa", depart:"¡Zarpar!",
+  rotate:"Girar ⇄", manifest:"Manifiesto", tilt:"Escora", load:"Carga",
+  wavePort:"OLA — BABOR BAJO EL AGUA", waveStar:"OLA — ESTRIBOR BAJO EL AGUA",
+  waveIn:"en {s} s", waveNow:"¡golpeando ya!",
+  arrTitle:"¡Entregado!", failTitle:"Perdido en el mar…",
+  sReq:"Carga obligatoria entregada", sBonus:"Carga extra entregada", sSafe:"Navegación estable",
+  sTotal:"Puntuación total", best:"Récord: {n}", locked:"Completa las travesías anteriores para desbloquear.",
+  tut1:"¡Bienvenido a bordo! Arrastra cada bulto del muelle a la cubierta. Los pesados al centro: el barco se mantiene derecho.",
+  tut2:"Mira el medidor CARGA: cuánto más peso, más se hunde el barco y más fuerte golpean las olas. Zarpa cuando el manifiesto esté a bordo.",
+  tut3:"Viene una ola: {side}. Desliza un bulto hacia el lado OPUESTO para contrarrestarla.",
+  tut4:"Aguja en rojo = carga en peligro: si escoras demasiado, los bultos del lado bajo caen. Toca un bulto y luego una celda verde.",
+  lostOne:"¡{name} cayó al agua!", lostReq:"Un bulto obligatorio cayó al agua: travesía fallida.",
+  rules:[
+    "<b>Antes de zarpar</b> — arrastra los bultos del muelle a la rejilla de la cubierta, gíralos con <span class='kbd'>R</span> o el botón. El manifiesto debe estar a bordo; los bultos extra son bonus (y puntos).",
+    "<b>Peso</b> — la carga total hunde el casco (medidor CARGA). Pasada la línea roja, no puedes zarpar; pasada la ámbar, las olas golpean más fuerte.",
+    "<b>Equilibrio</b> — un peso lejos del centro escora el barco (medidor ESCORA). Mantén la aguja fuera del rojo.",
+    "<b>Las olas</b> se anuncian: el cartel dice qué lado bajará, segundos antes.",
+    "<b>Durante la travesía</b> — toca un bulto y luego una celda verde para deslizarlo. Un bulto a la vez. Una escora roja prolongada tira los bultos del lado bajo.",
+    "<b>Entrega</b> todos los bultos obligatorios para ganar. Cada bulto extra vale +150. La estabilidad paga +2/s."
+  ],
+  lvlNames:["Primera travesía","Juego de equilibrio","Ráfaga","Mudanza","El estrecho","Mar abierto"],
+  typeNames:{bowl:"Pecera",crate:"Caja de pescado",barrel:"Barril",coop:"Gallinero",wheel:"Rueda de queso",clock:"Reloj de pie",sofa:"Sofá",surf:"Tabla de surf",washer:"Lavadora",piano:"Piano de cola"},
+}};
+
+/* ---------------- object types ---------------- */
+const TYPES = {
+  bowl:  {cells:[[0,0]], w:1, color:"var(--pkg3)", hex:"#7cc7ff"},
+  crate: {cells:[[0,0],[1,0]], w:2, color:"var(--pkg1)", hex:"#ff9d3b"},
+  barrel:{cells:[[0,0]], w:3, color:"var(--pkg7)", hex:"#b98a5a"},
+  coop:  {cells:[[0,0],[1,0]], w:2, color:"var(--pkg2)", hex:"#62c99a"},
+  wheel: {cells:[[0,0]], w:2, color:"var(--pkg4)", hex:"#ffd23f"},
+  clock: {cells:[[0,0],[0,1]], w:3, color:"var(--pkg9)", hex:"#f4a261"},
+  sofa:  {cells:[[0,0],[1,0],[2,0]], w:4, color:"var(--pkg5)", hex:"#b79bf2"},
+  surf:  {cells:[[0,0],[1,0],[2,0],[3,0]], w:1, color:"var(--pkg6)", hex:"#5ad0e6"},
+  washer:{cells:[[0,0],[1,0],[0,1],[1,1]], w:6, color:"var(--pkg8)", hex:"#9fb3c8"},
+  piano: {cells:[[0,0],[1,0],[0,1],[1,1]], w:7, color:"var(--pkg10)", hex:"#4a5568"},
+};
+function shapeRot(cells, rot){
+  let c = cells.map(([x,y])=>[x,y]);
+  for(let i=0;i<(rot&3);i++) c = c.map(([x,y])=>[y,-x]);
+  let mx=Math.min(...c.map(p=>p[0])), my=Math.min(...c.map(p=>p[1]));
+  return c.map(([x,y])=>[x-mx,y-my]);
+}
+function shapeSize(cells){ return [Math.max(...cells.map(p=>p[0]))+1, Math.max(...cells.map(p=>p[1]))+1]; }
+
+/* ---------------- levels ---------------- */
+/* wave: {t start s, side -1 port dips / +1 starboard dips, force deg, dur s, warn s} */
+const LEVELS = [
+ { gridW:5, gridH:3, cap:8, tutorial:true,
+   objects:[{type:"crate",req:true},{type:"barrel",req:true},{type:"bowl",req:true}],
+   waves:[{t:8,side:1,force:6,dur:4}] },
+ { gridW:5, gridH:3, cap:10, tutorial:true,
+   objects:[{type:"barrel",req:true},{type:"clock",req:true},{type:"crate",req:true},{type:"wheel",req:false}],
+   waves:[{t:6,side:-1,force:9,dur:4},{t:15,side:1,force:10,dur:4},{t:24,side:-1,force:9,dur:4}] },
+ { gridW:6, gridH:3, cap:14,
+   objects:[{type:"sofa",req:true},{type:"washer",req:true},{type:"crate",req:true},{type:"bowl",req:true},{type:"barrel",req:false}],
+   waves:[{t:5,side:1,force:12,dur:4},{t:12,side:-1,force:13,dur:4},{t:20,side:1,force:13,dur:4},{t:28,side:-1,force:12,dur:5},{t:36,side:1,force:10,dur:4}] },
+ { gridW:6, gridH:4, cap:20,
+   objects:[{type:"washer",req:true},{type:"sofa",req:true},{type:"clock",req:true},{type:"surf",req:true},{type:"piano",req:false}],
+   waves:[{t:6,side:-1,force:15,dur:6},{t:17,side:1,force:15,dur:6},{t:28,side:-1,force:16,dur:6},{t:39,side:1,force:12,dur:5}] },
+ { gridW:7, gridH:4, cap:18,
+   objects:[{type:"surf",req:true},{type:"sofa",req:true},{type:"barrel",req:true},{type:"coop",req:true},{type:"crate",req:true},{type:"wheel",req:false}],
+   waves:[{t:5,side:1,force:12,dur:3},{t:10,side:-1,force:19,dur:3,warn:2},{t:16,side:1,force:12,dur:3},{t:21,side:-1,force:19,dur:3,warn:2},{t:27,side:1,force:13,dur:3},{t:33,side:-1,force:20,dur:4,warn:2},{t:40,side:1,force:12,dur:4}] },
+ { gridW:7, gridH:4, cap:22,
+   objects:[{type:"piano",req:true},{type:"washer",req:true},{type:"sofa",req:true},{type:"clock",req:true},{type:"bowl",req:true},{type:"surf",req:false},{type:"crate",req:false}],
+   waves:[{t:5,side:-1,force:10,dur:4},{t:12,side:1,force:14,dur:4},{t:20,side:-1,force:15,dur:4},{t:28,side:1,force:21,dur:4},{t:37,side:-1,force:14,dur:4},{t:45,side:1,force:20,dur:4},{t:54,side:-1,force:16,dur:5},{t:62,side:1,force:11,dur:4}] },
+];
+for(const L of LEVELS){ // crossing ends after the last wave
+  L.duration = Math.max(...L.waves.map(w=>w.t+w.dur)) + 2.5;
+}
+
+/* ================================================================
+   ENGINE — pure, deterministic (no RNG, no DOM, fixed step)
+   ================================================================ */
+function centerCol(gw){ return (gw-1)/2; }
+
+function makeState(levelIndex){
+  const L = LEVELS[levelIndex];
+  const st = {
+    li:levelIndex, gridW:L.gridW, gridH:L.gridH, cap:L.cap,
+    phase:"placement", time:0, steps:0,
+    tilt:0, dangerT:0, inDangerAcc:0, safeTime:0,
+    objects:L.objects.map((o,i)=>({
+      id:i, type:o.type, w:TYPES[o.type].w, req:!!o.req,
+      placed:false, fallen:false, col:0, row:0, rot:0,
+    })),
+    waves:L.waves.map(w=>({...w, warnAt:w.t-(w.warn||TUNE.WARN), announced:false})),
+    selected:null, anim:null, falls:[], arrived:false, failed:false, failedObj:null,
+    events:[], // {kind:'fall'|'announce'|'waveStart'|'waveEnd'|'arrive'|'fail', ...}
+  };
+  return st;
+}
+function cellsOf(st,o){ return shapeRot(TYPES[o.type].cells, o.rot).map(([x,y])=>[o.col+x,o.row+y]); }
+function occGrid(st, exceptId){
+  const g = Array.from({length:st.gridW},()=>new Array(st.gridH).fill(null));
+  for(const o of st.objects){
+    if(o.id===exceptId || !o.placed || o.fallen) continue;
+    for(const [c,r] of cellsOf(st,o)) if(c>=0&&c<st.gridW&&r>=0&&r<st.gridH) g[c][r]=o.id;
+  }
+  return g;
+}
+function canPlaceAt(st,o,col,row,rot){
+  const cells = shapeRot(TYPES[o.type].cells, rot).map(([x,y])=>[col+x,row+y]);
+  for(const [c,r] of cells){
+    if(c<0||c>=st.gridW||r<0||r>=st.gridH) return false;
+  }
+  const g = occGrid(st,o.id);
+  for(const [c,r] of cells) if(g[c][r]!==null) return false;
+  return true;
+}
+function moveTargets(st,o){ // free translations during crossing
+  const out=[];
+  if(!o.placed||o.fallen) return out;
+  const size = shapeSize(shapeRot(TYPES[o.type].cells,o.rot));
+  for(let r=0;r<=st.gridH-size[1];r++)for(let c=0;c<=st.gridW-size[0];c++){
+    if(c===o.col&&r===o.row) continue;
+    if(canPlaceAt(st,o,c,r,o.rot)) out.push([c,r]);
+  }
+  return out;
+}
+function weightAboard(st){ let w=0; for(const o of st.objects) if(o.placed&&!o.fallen) w+=o.w; return w; }
+function torque(st){
+  const cc = centerCol(st.gridW); let q=0;
+  for(const o of st.objects){
+    if(!o.placed||o.fallen) continue;
+    const cells = cellsOf(st,o);
+    let arm=0; for(const [c] of cells) arm += (c-cc);
+    q += o.w * (arm/cells.length);
+  }
+  return q;
+}
+function draftRatio(st){ return weightAboard(st)/st.cap; }
+function waveAmp(st){ return 1 + Math.max(0, draftRatio(st)-1)*TUNE.OVERLOAD_AMP; }
+function smoothstep(x){ x=Math.max(0,Math.min(1,x)); return x*x*(3-2*x); }
+function waveTiltAt(st,time){
+  let v=0;
+  const amp = waveAmp(st);
+  for(const w of st.waves){
+    if(time < w.t || time >= w.t+w.dur) continue;
+    const up = smoothstep((time-w.t)/TUNE.WAVE_RAMP);
+    const down = 1-smoothstep((time-(w.t+w.dur-TUNE.WAVE_RAMP))/TUNE.WAVE_RAMP);
+    v += w.side * w.force * amp * Math.min(up,down);
+  }
+  return v;
+}
+function tiltTargetOf(st){
+  const q = torque(st);
+  return Math.max(-TUNE.TILT_MAX, Math.min(TUNE.TILT_MAX, TUNE.TILT_K*q + waveTiltAt(st,st.time)));
+}
+function departCheck(st){
+  const reqAboard = st.objects.every(o=>!o.req || (o.placed&&!o.fallen));
+  const over = draftRatio(st) > TUNE.MAX_DRAFT;
+  return {ok:reqAboard && !over, reqAboard, over};
+}
+function depart(st){
+  const d = departCheck(st);
+  if(!d.ok) return d;
+  st.phase="crossing"; st.time=0; st.tilt=0; st.dangerT=0; st.safeTime=0;
+  st.events.push({kind:"depart"});
+  return {ok:true};
+}
+function tryMove(st,o,col,row){ // crossing slide (translation only)
+  if(st.phase!=="crossing" || !o.placed || o.fallen || st.failed) return false;
+  if(st.anim) return false; // one parcel at a time
+  if(!canPlaceAt(st,o,col,row,o.rot)) return false;
+  o.col=col; o.row=row;
+  st.selected=null;
+  st.anim={id:o.id, t:0}; // cosmetic lock (one parcel at a time)
+  st.events.push({kind:"move",id:o.id});
+  return true;
+}
+function lowestObject(st, side){ // most exposed parcel on the dipping side
+  const cc = centerCol(st.gridW); let best=null, bs=-Infinity;
+  for(const o of st.objects){
+    if(!o.placed||o.fallen) continue;
+    const cells=cellsOf(st,o);
+    let arm=0; for(const [c] of cells) arm+=(c-cc); arm/=cells.length;
+    const s = arm*side*10 + o.w*0.01 + arm*side*o.w; // farthest & heaviest on low side
+    if(s>bs){bs=s;best=o;}
+  }
+  return best;
+}
+function stepGame(st, dt){
+  if(st.phase!=="crossing"||st.failed) return;
+  st.steps++; st.time+=dt;
+  // wave bookkeeping
+  for(const w of st.waves){
+    if(!w.announced && st.time>=w.warnAt){ w.announced=true; st.events.push({kind:"announce",side:w.side}); }
+    if(!w.started && st.time>=w.t){ w.started=true; st.events.push({kind:"waveStart",side:w.side,force:w.force}); }
+    if(!w.ended && st.time>=w.t+w.dur){ w.ended=true; st.events.push({kind:"waveEnd"}); }
+  }
+  // cosmetic anim timer
+  if(st.anim){ st.anim.t+=dt*1000; if(st.anim.t>=TUNE.MOVE_MS) st.anim=null; }
+  // tilt dynamics (exponential towards target — deterministic at fixed step)
+  const tgt = tiltTargetOf(st);
+  st.tilt += (tgt-st.tilt)*(1-Math.exp(-dt/TUNE.TAU));
+  // danger meter
+  const danger = Math.abs(st.tilt)>=TUNE.DANGER_TILT;
+  if(danger){ st.dangerT+=dt; st.inDangerAcc+=dt; }
+  else { st.dangerT=Math.max(0,st.dangerT-dt*TUNE.DANGER_DECAY); st.safeTime+=dt; }
+  if(danger && st.dangerT>=TUNE.DANGER_TIME){
+    const side = st.tilt>=0?1:-1;
+    const o = lowestObject(st,side);
+    if(o){
+      o.fallen=true; o.placed=false; st.dangerT=TUNE.FALL_GRACE;
+      st.falls.push({id:o.id,side});
+      st.events.push({kind:"fall",id:o.id,side});
+      if(o.req){ st.failed=true; st.failedObj=o; st.events.push({kind:"fail",id:o.id}); return; }
+    } else { st.dangerT=0; }
+  }
+  // arrival
+  if(st.time>=LEVELS[st.li].duration && !st.arrived){
+    st.arrived=true; st.phase="arrival"; st.events.push({kind:"arrive"});
+  }
+}
+function scoreOf(st){
+  let req=0,bonus=0;
+  for(const o of st.objects) if(o.placed&&!o.fallen){ if(o.req)req++; else bonus++; }
+  const safe = Math.floor(TUNE.SCORE_SAFE*st.safeTime);
+  const reqReq = st.objects.filter(o=>o.req).length;
+  const bonusAvail = st.objects.filter(o=>!o.req).length;
+  const stars = (req===reqReq && bonus===bonusAvail)?3 : (req===reqReq?2:1);
+  return {req,bonus,safe,total:req*TUNE.SCORE_REQ+bonus*TUNE.SCORE_BONUS+safe, stars, reqReq};
+}
+
+/* ================================================================
+   PERSISTENCE
+   ================================================================ */
+const store = {
+  data:{lang:null,mute:false,unlocked:0,best:{}},
+  load(){ try{ const s=localStorage.getItem("fragile-cargo"); if(s) Object.assign(this.data,JSON.parse(s)); }catch(e){} },
+  save(){ try{ localStorage.setItem("fragile-cargo",JSON.stringify(this.data)); }catch(e){} },
+};
+
+/* ================================================================
+   AUDIO — tiny WebAudio synth (no assets)
+   ================================================================ */
+const SFX = (()=>{
+  let ctx=null;
+  function ac(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(ctx&&ctx.state==="suspended") ctx.resume(); return ctx; }
+  function tone(f0,f1,dur,type,vol,delay){
+    const c=ac(); if(!c||store.data.mute) return;
+    const t=c.currentTime+(delay||0);
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||"sine"; o.frequency.setValueAtTime(f0,t);
+    if(f1) o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol||0.12,t+0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.05);
+  }
+  function noise(dur,vol,fc){
+    const c=ac(); if(!c||store.data.mute) return;
+    const n=c.sampleRate*dur|0, buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+    const s=c.createBufferSource(); s.buffer=buf;
+    const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=fc||900;
+    const g=c.createGain(); g.gain.value=vol||0.2;
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+  }
+  return {
+    unlock(){ ac(); },
+    pickup(){ tone(300,520,0.09,"triangle",0.08); },
+    place(){ tone(180,120,0.1,"square",0.06); noise(0.06,0.08,500); },
+    select(){ tone(600,760,0.06,"sine",0.07); },
+    move(){ tone(320,440,0.12,"triangle",0.07); },
+    horn(){ tone(196,196,0.28,"sawtooth",0.06); tone(147,147,0.28,"sawtooth",0.05,0.02); },
+    whoosh(){ noise(0.5,0.16,700); },
+    splash(){ noise(0.45,0.25,1400); tone(300,90,0.3,"sine",0.1); },
+    bell(){ tone(880,878,0.5,"sine",0.1); tone(1318,1316,0.5,"sine",0.06,0.05); },
+    win(){ [523,659,784,1046].forEach((f,i)=>tone(f,f,0.18,"triangle",0.09,i*0.11)); },
+    fail(){ tone(220,110,0.5,"sawtooth",0.09); },
+    click(){ tone(500,500,0.04,"square",0.05); },
+  };
+})();
+
+/* ================================================================
+   UI + RENDER
+   ================================================================ */
+const $=id=>document.getElementById(id);
+const cv=$("cv"), ctx2=cv.getContext("2d");
+let LANG="en", ST=null, paused=false, appPhase="home"; // home|game
+let attract={t:0};
+let drag=null; // {oid, x,y, rot, fromQuay}
+let hoverCell=null, fx=[]; // particles
+let W=0,H=0,DPR=1;
+
+function T(k){ const d=I18N[LANG]||I18N.en; return (d[k]!==undefined?d[k]:(I18N.en[k]!==undefined?I18N.en[k]:k)); }
+function fmt(s,v){ return String(s).replace(/\{s\}/g,v).replace(/\{n\}/g,v).replace(/\{name\}/g,v).replace(/\{side\}/g,v); }
+
+function resize(){
+  const r=cv.getBoundingClientRect();
+  DPR=Math.min(2.5,window.devicePixelRatio||1);
+  W=Math.max(320,r.width); H=Math.max(240,r.height);
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  ctx2.setTransform(DPR,0,0,DPR,0,0);
+}
+
+/* --- scene geometry --- */
+function sceneGeom(){
+  const st=ST;
+  const seaY=H*0.62;
+  const gw=st?st.gridW:6, gh=st?st.gridH:3;
+  const deckW=Math.min(W*0.92, (st?560*Math.max(0.8,st.gridW/7):480));
+  // the whole deck grid must sit ABOVE the waterline (pivot = deck centre)
+  const maxDeckH=seaY*0.60;
+  const cs=Math.min(deckW/gw, maxDeckH/gh);
+  const deckH=cs*gh;
+  const px=W/2, py=seaY-32-deckH/2; // pivot: deck centre; keep the last row clear of the waterline even when loaded
+  return {seaY,cs,deckW:cs*gw,deckH,px,py,gw,gh};
+}
+/* ship transform shared by draw + hit-testing (keeps taps accurate while tilted) */
+function shipTransform(nowMs, st){
+  const g=sceneGeom();
+  const t=nowMs/1000;
+  const inGame=appPhase==="game"&&st;
+  const tilt = inGame&&st.phase==="crossing" ? st.tilt*Math.PI/180 : 0;
+  const draft = inGame ? draftRatio(st) : 0.3;
+  const sink = 4+26*Math.min(1.25,draft)/1.25;
+  const bob = Math.sin(t*1.4)*2.2;
+  return {g,tilt,sink,bob,t};
+}
+
+/* --- drawing helpers --- */
+function rr(x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx2.beginPath();
+  ctx2.moveTo(x+r,y); ctx2.arcTo(x+w,y,x+w,y+h,r); ctx2.arcTo(x+w,y+h,x,y+h,r);
+  ctx2.arcTo(x,y+h,x,y,r); ctx2.arcTo(x,y,x+w,y,r); ctx2.closePath(); }
+function cloud(x,y,s,alpha){ ctx2.save(); ctx2.globalAlpha=alpha; ctx2.fillStyle="#ffffff";
+  ctx2.beginPath();
+  ctx2.arc(x,y,10*s,0,7); ctx2.arc(x+12*s,y-6*s,13*s,0,7); ctx2.arc(x+26*s,y,10*s,0,7);
+  ctx2.rect(x-8*s,y,36*s,10*s); ctx2.fill(); ctx2.restore(); }
+
+function drawTypeFace(type,x,y,w,h){
+  // fun package faces, drawn inside cell box
+  const cx=x+w/2, cy=y+h/2;
+  ctx2.save();
+  switch(type){
+    case "bowl":{ // goldfish bowl
+      ctx2.fillStyle="#dff3fb"; rr(x+w*.18,y+h*.14,w*.64,h*.6,w*.14); ctx2.fill();
+      ctx2.strokeStyle="#4a90b8"; ctx2.lineWidth=Math.max(1.5,w*.04); ctx2.stroke();
+      ctx2.fillStyle="#ff8c42"; ctx2.beginPath(); ctx2.ellipse(cx,y+h*.42,w*.16,h*.11,0,0,7); ctx2.fill();
+      ctx2.beginPath(); ctx2.moveTo(cx+w*.13,y+h*.42); ctx2.lineTo(cx+w*.24,y+h*.36); ctx2.lineTo(cx+w*.24,y+h*.48); ctx2.fill();
+      ctx2.fillStyle="#4a90b8"; ctx2.beginPath(); ctx2.arc(cx-w*.05,y+h*.39,w*.02,0,7); ctx2.fill();
+      break; }
+    case "crate":{ ctx2.fillStyle="#c96f24"; rr(x+w*.08,y+h*.16,w*.84,h*.68,3); ctx2.fill();
+      ctx2.strokeStyle="#8a4a12"; ctx2.lineWidth=Math.max(1.5,w*.045);
+      ctx2.beginPath(); ctx2.moveTo(x+w*.08,y+h*.16); ctx2.lineTo(x+w*.92,y+h*.84);
+      ctx2.moveTo(x+w*.92,y+h*.16); ctx2.lineTo(x+w*.08,y+h*.84); ctx2.stroke();
+      ctx2.fillStyle="#91521a"; ctx2.fillRect(x+w*.08,y+h*.44,w*.84,h*.1);
+      ctx2.fillStyle="#ff8c42"; ctx2.beginPath(); ctx2.ellipse(x+w*.5,y+h*.28,w*.13,h*.08,.4,0,7); ctx2.fill(); break; }
+    case "barrel":{ ctx2.fillStyle="#a06a34"; rr(x+w*.22,y+h*.14,w*.56,h*.74,w*.16); ctx2.fill();
+      ctx2.strokeStyle="#5f3a17"; ctx2.lineWidth=Math.max(1.5,w*.05);
+      ctx2.beginPath(); ctx2.moveTo(x+w*.22,y+h*.32); ctx2.lineTo(x+w*.78,y+h*.32);
+      ctx2.moveTo(x+w*.2,y+h*.66); ctx2.lineTo(x+w*.8,y+h*.66); ctx2.stroke(); break; }
+    case "coop":{ ctx2.fillStyle="#8fd8ac"; ctx2.fillRect(x+w*.08,y+h*.2,w*.84,h*.64);
+      ctx2.strokeStyle="#2e7d4f"; ctx2.lineWidth=Math.max(1.2,w*.035);
+      for(let i=1;i<4;i++){ ctx2.beginPath(); ctx2.moveTo(x+w*.08+i*w*.21,y+h*.2); ctx2.lineTo(x+w*.08+i*w*.21,y+h*.84); ctx2.stroke(); }
+      ctx2.beginPath(); ctx2.moveTo(x+w*.08,y+h*.34); ctx2.lineTo(x+w*.92,y+h*.34); ctx2.stroke();
+      ctx2.fillStyle="#fff"; ctx2.beginPath(); ctx2.arc(x+w*.6,y+h*.58,w*.11,0,7); ctx2.fill();
+      ctx2.fillStyle="#e5484d"; ctx2.beginPath(); ctx2.arc(x+w*.635,y+h*.56,w*.025,0,7); ctx2.fill(); break; }
+    case "wheel":{ ctx2.fillStyle="#f4c93c"; ctx2.beginPath(); ctx2.arc(cx,cy,w*.36,0,7); ctx2.fill();
+      ctx2.strokeStyle="#c99a1e"; ctx2.lineWidth=Math.max(1.2,w*.04); ctx2.stroke();
+      ctx2.fillStyle="#fdf0b8"; [[-.14,-.1],[.12,-.14],[.02,.1],[-.16,.14],[.16,.08]].forEach(p=>{
+        ctx2.beginPath(); ctx2.arc(cx+p[0]*w,cy+p[1]*h,w*.05,0,7); ctx2.fill(); }); break; }
+    case "clock":{ ctx2.fillStyle="#b07038"; rr(x+w*.26,y+h*.1,w*.48,h*.82,4); ctx2.fill();
+      ctx2.fillStyle="#fdf0dc"; ctx2.beginPath(); ctx2.arc(cx,y+h*.3,w*.2,0,7); ctx2.fill();
+      ctx2.strokeStyle="#25333c"; ctx2.lineWidth=Math.max(1.2,w*.03);
+      ctx2.beginPath(); ctx2.moveTo(cx,y+h*.3); ctx2.lineTo(cx,y+h*.21);
+      ctx2.moveTo(cx,y+h*.3); ctx2.lineTo(cx+w*.1,y+h*.33); ctx2.stroke();
+      ctx2.fillStyle="#8a4a12"; ctx2.beginPath(); ctx2.arc(cx,y+h*.68,w*.08,0,7); ctx2.fill(); break; }
+    case "sofa":{ ctx2.fillStyle="#9d7fe0"; rr(x+w*.06,y+h*.3,w*.88,h*.56,h*.14); ctx2.fill();
+      ctx2.fillStyle="#8465d4"; rr(x+w*.06,y+h*.16,w*.88,h*.24,h*.1); ctx2.fill();
+      ctx2.fillStyle="#c9baf2"; ctx2.fillRect(x+w*.14,y+h*.4,w*.3,h*.18); ctx2.fillRect(x+w*.56,y+h*.4,w*.3,h*.18); break; }
+    case "surf":{ ctx2.fillStyle="#3ec3dd"; rr(x+w*.04,y+h*.3,w*.92,h*.42,h*.2); ctx2.fill();
+      ctx2.save(); rr(x+w*.04,y+h*.3,w*.92,h*.42,h*.2); ctx2.clip();
+      ctx2.fillStyle="#ffffff"; ctx2.beginPath(); ctx2.moveTo(x,y+h*.5);
+      for(let i=0;i<=8;i++) ctx2.lineTo(x+w*(i/8),y+h*(i%2?.36:.56));
+      ctx2.lineTo(x+w,y+h*.8); ctx2.lineTo(x,y+h*.8); ctx2.fill(); ctx2.restore(); break; }
+    case "washer":{ ctx2.fillStyle="#8fa6bd"; rr(x+w*.12,y+h*.12,w*.76,h*.8,6); ctx2.fill();
+      ctx2.fillStyle="#e8f1f8"; ctx2.beginPath(); ctx2.arc(cx,cy+h*.06,w*.26,0,7); ctx2.fill();
+      ctx2.strokeStyle="#57708a"; ctx2.lineWidth=Math.max(1.5,w*.045); ctx2.stroke();
+      ctx2.fillStyle="#bcd8ea"; ctx2.beginPath(); ctx2.arc(cx-w*.08,cy-h*.02,w*.07,0,7); ctx2.fill();
+      ctx2.fillStyle="#57708a"; ctx2.fillRect(x+w*.2,y+h*.18,w*.6,h*.05); break; }
+    case "piano":{ ctx2.fillStyle="#37414f"; rr(x+w*.08,y+h*.2,w*.84,h*.66,5); ctx2.fill();
+      ctx2.fillStyle="#1c232d"; ctx2.beginPath(); ctx2.ellipse(x+w*.34,y+h*.34,w*.24,h*.1,-.2,0,7); ctx2.fill();
+      ctx2.fillStyle="#fff"; for(let i=0;i<6;i++) ctx2.fillRect(x+w*(.2+i*.1),y+h*.62,w*.06,h*.16);
+      ctx2.fillStyle="#111"; for(let i=0;i<5;i++) ctx2.fillRect(x+w*(.27+i*.1),y+h*.62,w*.045,h*.1); break; }
+  }
+  ctx2.restore();
+}
+function drawParcel(o, x, y, cellPx, ghost){
+  const cells=shapeRot(TYPES[o.type].cells,o.rot);
+  const [sw,sh]=shapeSize(cells);
+  const w=sw*cellPx, h=sh*cellPx;
+  ctx2.save();
+  if(ghost!==undefined) ctx2.globalAlpha=ghost;
+  // shadow
+  ctx2.fillStyle="rgba(37,51,60,.18)"; rr(x+2,y+3,w,h,6); ctx2.fill();
+  // body (white card with coloured band)
+  ctx2.fillStyle="#fffdf6"; rr(x,y,w,h,6); ctx2.fill();
+  ctx2.lineWidth=2; ctx2.strokeStyle="#25333c"; ctx2.stroke();
+  ctx2.fillStyle=TYPES[o.type].hex; rr(x+3,y+3,w-6,Math.max(6,h*.16),4); ctx2.fill();
+  drawTypeFace(o.type, x, y+h*.1, w, h*.95);
+  // weight badge
+  const bx=x+w-9, by=y+h-9;
+  ctx2.fillStyle="#25333c"; ctx2.beginPath(); ctx2.arc(bx,by,9,0,7); ctx2.fill();
+  ctx2.fillStyle="#fff"; ctx2.font="900 11px Nunito, sans-serif"; ctx2.textAlign="center"; ctx2.textBaseline="middle";
+  ctx2.fillText(String(o.w),bx,by+0.5);
+  if(o.req){ // required tag
+    ctx2.fillStyle="#2e9e6b"; rr(x+4,y+h-16,10,10,3); ctx2.fill();
+  }
+  ctx2.restore();
+}
+
+/* --- main scene --- */
+function drawScene(nowMs){
+  const g=sceneGeom();
+  const st=ST;
+  const inGame=appPhase==="game"&&st;
+  const t=nowMs/1000;
+  // sky
+  const sky=ctx2.createLinearGradient(0,0,0,g.seaY);
+  sky.addColorStop(0,"#fdf6e3"); sky.addColorStop(1,"#ffe9b8");
+  ctx2.fillStyle=sky; ctx2.fillRect(0,0,W,g.seaY);
+  // sun
+  ctx2.fillStyle="#ffd76a"; ctx2.beginPath(); ctx2.arc(W*0.82,H*0.14,26,0,7); ctx2.fill();
+  ctx2.globalAlpha=.25; ctx2.beginPath(); ctx2.arc(W*0.82,H*0.14,40,0,7); ctx2.fill(); ctx2.globalAlpha=1;
+  // clouds
+  cloud((t*8)%(W+120)-60,H*0.10,1,.9); cloud((t*5+200)%(W+160)-80,H*0.2,0.7,.8); cloud(W-((t*6)%(W+140))+70,H*0.06,0.55,.7);
+  // distant islands
+  ctx2.fillStyle="#bfe6d2";
+  ctx2.beginPath(); ctx2.ellipse(W*0.16,g.seaY,46,10,0,Math.PI,0); ctx2.fill();
+  ctx2.beginPath(); ctx2.ellipse(W*0.68,g.seaY,60,7,0,Math.PI,0); ctx2.fill();
+  // sea back
+  ctx2.fillStyle="#5fd6e4"; ctx2.fillRect(0,g.seaY-4,W,H-g.seaY+4);
+  // ship transform (shared with hit-testing)
+  const homeSway = appPhase==="home"||!inGame ? Math.sin(t*0.5)*0.03 : 0;
+  const tf=shipTransform(nowMs, st);
+  const tilt = inGame ? tf.tilt : homeSway;
+  const sink = inGame ? tf.sink : 4+26*0.3/1.25;
+  const bob = tf.bob;
+  const cs=g.cs;
+  ctx2.save();
+  ctx2.translate(g.px, g.py+sink+bob);
+  ctx2.rotate(tilt);
+  // hull (below deck) — reaches from the pivot down past the grid bottom
+  const hw=g.deckW*0.5+cs*0.55, hh=g.deckH/2+cs*0.55;
+  ctx2.fillStyle="#b23a20";
+  ctx2.beginPath();
+  ctx2.moveTo(-hw+6,0); ctx2.lineTo(hw-6,0);
+  ctx2.quadraticCurveTo(hw+cs*0.3,hh*0.72,hw-cs*0.55,hh);
+  ctx2.lineTo(-hw+cs*0.5,hh); ctx2.quadraticCurveTo(-hw-cs*0.25,hh*0.6,-hw+6,0);
+  ctx2.closePath(); ctx2.fill();
+  ctx2.fillStyle="#e2502f";
+  ctx2.beginPath();
+  ctx2.moveTo(-hw+6,0); ctx2.lineTo(hw-6,0);
+  ctx2.quadraticCurveTo(hw+cs*0.18,hh*0.5,hw-cs*0.7,hh*0.66);
+  ctx2.lineTo(-hw+cs*0.55,hh*0.66); ctx2.quadraticCurveTo(-hw-cs*0.12,hh*0.42,-hw+6,0);
+  ctx2.closePath(); ctx2.fill();
+  // white stripe + portholes
+  ctx2.fillStyle="#fffdf6"; ctx2.fillRect(-hw+14,-2,hw*2-28,5);
+  ctx2.fillStyle="#ffd76a";
+  for(let i=-2;i<=2;i++){ ctx2.beginPath(); ctx2.arc(i*hw*0.36,hh*0.3,3.4,0,7); ctx2.fill(); }
+  // bulwark (railing along the top edge of the deck)
+  ctx2.fillStyle="#e2502f"; rr(-g.deckW/2-4,-g.deckH/2-cs*0.30,g.deckW+8,cs*0.34,4); ctx2.fill();
+  ctx2.strokeStyle="#7a2a18"; ctx2.lineWidth=2; ctx2.stroke();
+  // deck grid (centred on the pivot)
+  const dx0=-g.deckW/2, dy0=-g.deckH/2;
+  ctx2.fillStyle="#f2d8a7"; rr(dx0,dy0,g.deckW,g.deckH,5); ctx2.fill();
+  ctx2.strokeStyle="#d9b87f"; ctx2.lineWidth=1;
+  for(let i=0;i<=g.gw;i++){ ctx2.beginPath(); ctx2.moveTo(dx0+i*cs,dy0); ctx2.lineTo(dx0+i*cs,dy0+g.deckH); ctx2.stroke(); }
+  for(let j=0;j<=g.gh;j++){ ctx2.beginPath(); ctx2.moveTo(dx0,dy0+j*cs); ctx2.lineTo(dx0+g.deckW,dy0+j*cs); ctx2.stroke(); }
+  ctx2.strokeStyle="#c9a86e"; ctx2.lineWidth=2; rr(dx0,dy0,g.deckW,g.deckH,5); ctx2.stroke();
+  // centre line marker (balance axis)
+  ctx2.setLineDash([5,4]); ctx2.strokeStyle="#e2502f"; ctx2.globalAlpha=.5;
+  const ccx=dx0+g.gw/2*cs;
+  ctx2.beginPath(); ctx2.moveTo(ccx,dy0); ctx2.lineTo(ccx,dy0+g.deckH); ctx2.stroke();
+  ctx2.setLineDash([]); ctx2.globalAlpha=1;
+  // mast + flag
+  ctx2.fillStyle="#8a5a33"; ctx2.fillRect(ccx-2,dy0-cs*0.95,4,cs*0.95);
+  ctx2.fillStyle="#e2502f"; ctx2.beginPath();
+  ctx2.moveTo(ccx+2,dy0-cs*0.95); ctx2.lineTo(ccx+2+cs*0.55+Math.sin(t*3)*3,dy0-cs*0.82); ctx2.lineTo(ccx+2,dy0-cs*0.68); ctx2.closePath(); ctx2.fill();
+
+  // move targets highlight
+  if(inGame&&st.phase==="crossing"&&st.selected!==null&&!st.anim){
+    const o=st.objects.find(o=>o.id===st.selected);
+    if(o&&o.placed&&!o.fallen){
+      ctx2.fillStyle="rgba(46,158,107,.4)";
+      for(const [c,r] of moveTargets(st,o)){ rr(dx0+c*cs+3,dy0+r*cs+3,cs-6,cs-6,5); ctx2.fill(); }
+    }
+  }
+  // parcels on deck
+  if(inGame){
+    for(const o of st.objects){
+      if(!o.placed||o.fallen) continue;
+      let px=dx0+o.col*cs, py=dy0+o.row*cs;
+      if(st.anim&&st.anim.id===o.id){ // slide pop (cosmetic lock)
+        ctx2.save(); ctx2.translate(px,py); ctx2.scale(1.03,1.03); ctx2.translate(-px,-py);
+        drawParcel(o,px+3,py+3,cs-6); ctx2.restore();
+      } else drawParcel(o,px+3,py+3,cs-6);
+      if(st.selected===o.id){
+        ctx2.strokeStyle="#2e9e6b"; ctx2.lineWidth=3; ctx2.setLineDash([6,4]);
+        const [sw2,sh2]=shapeSize(shapeRot(TYPES[o.type].cells,o.rot));
+        rr(px+2,py+2,sw2*cs-4,sh2*cs-4,7); ctx2.stroke(); ctx2.setLineDash([]);
+      }
+    }
+  }
+  ctx2.restore(); // end ship rotation
+
+  // quay (placement) — wooden dock at bottom of scene
+  if(inGame&&st.phase==="placement"){
+    const qy=H-10;
+    ctx2.fillStyle="#b98a5a"; rr(10,qy-40,W-20,44,8); ctx2.fill();
+    ctx2.strokeStyle="#8a5a33"; ctx2.lineWidth=2;
+    for(let i=1;i<6;i++){ ctx2.beginPath(); ctx2.moveTo(10+(W-20)*i/6,qy-40); ctx2.lineTo(10+(W-20)*i/6,qy+4); ctx2.stroke(); }
+    let qx=18;
+    for(const o of st.objects){
+      if(o.placed||o.fallen||(drag&&drag.oid===o.id)) continue;
+      const [sw2]=shapeSize(shapeRot(TYPES[o.type].cells,o.rot));
+      const s2=quayCellPx();
+      drawParcel(o,qx,qy-40,s2);
+      qx+=sw2*s2+14;
+    }
+  }
+  // drag ghost
+  if(drag){
+    const o=st.objects.find(o=>o.id===drag.oid);
+    if(o){
+      const s3=cs-6;
+      const ok=drag.cellOk;
+      ctx2.globalAlpha=.85;
+      drawParcel(o,drag.x-s3/2,drag.y-s3/2,s3);
+      ctx2.globalAlpha=1;
+    }
+  }
+  // sea foreground bands (translucent: a dipping deck stays readable through the water)
+  ctx2.fillStyle="rgba(53,196,215,.55)";
+  ctx2.beginPath(); ctx2.moveTo(0,g.seaY+14);
+  for(let x=0;x<=W;x+=24) ctx2.lineTo(x,g.seaY+14+Math.sin(x*0.03+t*2.2)*3.5);
+  ctx2.lineTo(W,H); ctx2.lineTo(0,H); ctx2.fill();
+  ctx2.fillStyle="rgba(31,168,189,.6)";
+  ctx2.beginPath(); ctx2.moveTo(0,g.seaY+30);
+  for(let x=0;x<=W;x+=24) ctx2.lineTo(x,g.seaY+30+Math.sin(x*0.025-t*1.7)*4.5);
+  ctx2.lineTo(W,H); ctx2.lineTo(0,H); ctx2.fill();
+  // foam sparkles
+  ctx2.fillStyle="rgba(255,255,255,.7)";
+  for(let i=0;i<14;i++){
+    const fxp=(i*97+t*40)%W, fyp=g.seaY+18+((i*53)%40);
+    if(Math.sin(t*3+i)>0.55) { ctx2.fillRect(fxp,fyp,3,3); }
+  }
+  // falling parcels + splashes (screen space)
+  for(const p of fx){
+    if(p.kind==="fall"){
+      ctx2.save(); ctx2.translate(p.x,p.y); ctx2.rotate(p.rot);
+      drawParcel(p.o,-cs*0.4,-cs*0.4,cs*0.8); ctx2.restore();
+    } else if(p.kind==="splash"){
+      ctx2.globalAlpha=Math.max(0,1-p.t/p.dur);
+      ctx2.fillStyle="#bff0f4";
+      for(let i=0;i<p.drops.length;i++){
+        const d=p.drops[i];
+        ctx2.beginPath(); ctx2.arc(p.x+d.x*p.t*60,p.y-d.y*p.t*60+40*p.t*p.t,3,0,7); ctx2.fill();
+      }
+      ctx2.globalAlpha=1;
+    }
+  }
+  // danger tint
+  if(inGame&&st.phase==="crossing"&&Math.abs(st.tilt)>=TUNE.DANGER_TILT){
+    $("dangerV").style.opacity=String(Math.min(1,(Math.abs(st.tilt)-TUNE.DANGER_TILT)/8+0.4)*(0.6+0.4*Math.sin(t*10)));
+  } else $("dangerV").style.opacity="0";
+}
+
+/* ================================================================
+   HUD / SCREENS
+   ================================================================ */
+function show(id){ $(id).classList.remove("hidden"); }
+function hide(id){ $(id).classList.add("hidden"); }
+function setHTML(id,html){ $(id).innerHTML=html; }
+function applyLang(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll("[data-i]").forEach(el=>{ el.textContent=T(el.getAttribute("data-i")); });
+  setHTML("hdrTitle",T("title"));
+  setHTML("howRules","<div class='rules'>"+I18N[LANG].rules.map(r=>"<div style='margin:6px 0'>"+r+"</div>").join("")+"</div>");
+  document.querySelectorAll(".lang").forEach(b=>b.classList.toggle("sel",b.dataset.lang===LANG));
+  refreshHUD(); buildLevelGrid();
+}
+function toast(msg,ms){
+  const el=$("toast"); el.textContent=msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove("show"),ms||4200);
+}
+let manifestKey="";
+function refreshHUD(){
+  const st=ST; const inGame=appPhase==="game"&&st;
+  $("btnRotate").style.display = inGame&&st.phase==="placement"?"":"none";
+  $("btnDepart").style.display = inGame&&st.phase==="placement"?"":"none";
+  $("btnPause").style.display = inGame&&st.phase==="crossing"?"":"none";
+  // manifest (rebuilt only when state changes)
+  if(inGame){
+    const key=st.objects.map(o=>o.id+":"+(o.fallen?2:o.placed?1:0)).join("|")+"/"+st.li+"/"+LANG;
+    if(key!==manifestKey){
+      manifestKey=key;
+      let html="";
+      for(const o of st.objects){
+        const cls = o.fallen?"lost":(o.placed?"ok":"");
+        html+="<div class='mchip "+cls+(o.req?"":" bonus")+"' title='"+T("typeNames")[o.type]+" ×"+o.w+"'>"+typeGlyph(o.type)+"<span class='w'>"+o.w+"</span></div>";
+      }
+      setHTML("manifest",html);
+    }
+    // tilt
+    const n=$("tiltNeedle");
+    const p=50+Math.max(-1,Math.min(1,st.tilt/TUNE.TILT_MAX))*46;
+    n.style.left=p+"%";
+    $("tiltVal").textContent=Math.round(st.tilt)+"°";
+    $("tiltGauge").classList.toggle("crit",Math.abs(st.tilt)>=TUNE.DANGER_TILT);
+    // load
+    const dr=draftRatio(st), fill=$("loadFill");
+    fill.style.height=Math.min(100,dr/1.25*100)+"%";
+    $("loadBar").className = dr>TUNE.MAX_DRAFT?"crit":(dr>1?"warn":"");
+    $("loadVal").textContent=weightAboard(st)+" / "+st.cap;
+    // depart button state (always clickable — explains refusals)
+    const d=departCheck(st);
+    $("btnDepart").style.background = d.ok?"var(--accent)":"var(--card)";
+    $("btnDepart").style.color = d.ok?"#fff":"var(--ink)";
+  } else {
+    if(manifestKey!=="home"){ manifestKey="home"; setHTML("manifest","<span class='small'>"+T("tagline")+"</span>"); }
+    $("tiltVal").textContent="—"; $("loadVal").textContent="—";
+  }
+}
+function typeGlyph(t){ return {bowl:"🐟",crate:"📦",barrel:"🛢️",coop:"🐔",wheel:"🧀",clock:"🕰️",sofa:"🛋️",surf:"🏄",washer:"🌀",piano:"🎹"}[t]; }
+function buildLevelGrid(){
+  const g=$("lvlGrid"); g.innerHTML="";
+  LEVELS.forEach((L,i)=>{
+    const b=document.createElement("button");
+    b.className="lvlbtn"; b.textContent=String(i+1);
+    b.disabled=i>store.data.unlocked;
+    const best=store.data.best[i];
+    if(best){ const st=document.createElement("span"); st.className="st"; st.textContent="★".repeat(best.stars); b.appendChild(st); }
+    b.addEventListener("click",()=>{ SFX.click(); startLevel(i); });
+    g.appendChild(b);
+  });
+}
+function startLevel(i){
+  ST=makeState(i); appPhase="game"; paused=false;
+  hide("scrHome"); hide("scrHow"); hide("scrArrival"); hide("scrFail"); hide("scrPause");
+  drag=null;
+  if(ST.li===0) toast(T("tut1"),6000);
+  else if(ST.li===1) toast(T("tut2"),5500);
+  refreshHUD();
+}
+function goHome(){
+  appPhase="home"; paused=false; ST=null; drag=null;
+  hide("scrHow"); hide("scrPause"); hide("scrArrival"); hide("scrFail"); show("scrHome");
+  const total=Object.values(store.data.best).reduce((a,b)=>a+b.total,0);
+  setHTML("homeBest",total?fmt(T("best"),total):"");
+  buildLevelGrid(); refreshHUD();
+}
+
+/* ---------------- arrival / fail ---------------- */
+function finishArrival(){
+  const s=scoreOf(ST);
+  const stars="★".repeat(s.stars)+"☆".repeat(3-s.stars);
+  setHTML("arrTitle",T("arrTitle"));
+  setHTML("arrStars",stars);
+  setHTML("arrLines",
+    line(T("sReq"),s.req+" × "+TUNE.SCORE_REQ)+"\n"+
+    line(T("sBonus"),s.bonus+" × "+TUNE.SCORE_BONUS)+"\n"+
+    line(T("sSafe"),"+"+s.safe)+"\n"+
+    "<div class='scoreline total'><span>"+T("sTotal")+"</span><b>"+s.total+"</b></div>");
+  function line(a,b){ return "<div class='scoreline'><span>"+a+"</span><b>"+b+"</b></div>"; }
+  const prev=store.data.best[ST.li];
+  if(!prev||s.total>prev.total){ store.data.best[ST.li]=s; }
+  if(ST.li+1>store.data.unlocked) store.data.unlocked=Math.min(LEVELS.length-1,ST.li+1);
+  store.save();
+  $("btnNext").style.display = ST.li+1<LEVELS.length?"":"none";
+  show("scrArrival");
+  SFX.win();
+}
+function finishFail(){
+  const o=ST.failedObj;
+  setHTML("failTxt", (o?fmt(T("lostOne"),T("typeNames")[o.type])+"<br>":"")+T("lostReq"));
+  show("scrFail"); SFX.fail();
+}
+
+/* ---------------- wave banner ---------------- */
+function updateBanner(){
+  const st=ST; const el=$("waveBanner");
+  if(appPhase!=="game"||!st||st.phase!=="crossing"){ el.classList.remove("show","live"); return; }
+  let w=null, live=false;
+  for(const k of st.waves){
+    if(st.time>=k.t&&st.time<k.t+k.dur){ w=k; live=true; break; }
+    if(st.time>=k.warnAt&&st.time<k.t){ w=k; break; } // announced and incoming
+  }
+  if(!w){ el.classList.remove("show","live"); return; }
+  const sideTxt = w.side<0?T("wavePort"):T("waveStar");
+  if(live){
+    setHTML("waveTxt","<span style='color:var(--danger)'>⚠ "+sideTxt+" — "+T("waveNow")+"</span>");
+    el.classList.add("live");
+  } else {
+    const remain=Math.max(0,w.t-st.time).toFixed(1);
+    setHTML("waveTxt","⚠ "+sideTxt+" — "+fmt(T("waveIn"),remain));
+    el.classList.remove("live");
+  }
+  const arr=$("waveArr"); arr.textContent=w.side<0?"⬅":"➡";
+  arr.classList.toggle("l",w.side<0);
+  el.classList.add("show");
+}
+
+/* ================================================================
+   INPUT (pointer + keyboard)
+   ================================================================ */
+function evPos(e){ const r=cv.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; }
+function quayCellPx(){ return Math.min(sceneGeom().cs-8, 34); }
+function quayLayout(){ // x positions of staged parcels on the dock (matches drawing)
+  const out=[]; let qx=18; const s2=quayCellPx();
+  for(const q of (ST?ST.objects:[])){
+    if(q.placed||q.fallen||(drag&&drag.oid===q.id)){ out.push(null); continue; }
+    const [sw2]=shapeSize(shapeRot(TYPES[q.type].cells,q.rot));
+    out.push({x:qx,s2}); qx+=sw2*s2+14;
+  }
+  return out;
+}
+function cellAt(x,y){
+  const st=ST; if(!st) return null;
+  const tf=shipTransform(performance.now(), st);
+  const g=tf.g;
+  // inverse transform: screen → ship local (undo bob/sink translate, then tilt)
+  let lx=x-g.px, ly=y-(g.py+tf.sink+tf.bob);
+  const cA=Math.cos(-tf.tilt), sA=Math.sin(-tf.tilt);
+  const rx=lx*cA-ly*sA, ry=lx*sA+ly*cA;
+  const dx0=-g.deckW/2, dy0=-g.deckH/2;
+  const c=Math.floor((rx-dx0)/g.cs), r=Math.floor((ry-dy0)/g.cs);
+  if(c<0||c>=st.gridW||r<0||r>=st.gridH) return null;
+  return [c,r];
+}
+function parcelAt(x,y){
+  const st=ST; if(!st) return null;
+  const cell=cellAt(x,y); if(!cell) return null;
+  for(const o of st.objects){
+    if(!o.placed||o.fallen) continue;
+    for(const [c,r] of cellsOf(st,o)) if(c===cell[0]&&r===cell[1]) return o;
+  }
+  return null;
+}
+cv.addEventListener("pointerdown",e=>{
+  SFX.unlock();
+  if(appPhase!=="game"||!ST||paused) return;
+  const [x,y]=evPos(e);
+  if(ST.phase==="placement"){
+    // pick from deck
+    const o=parcelAt(x,y);
+    if(o){ beginDrag(o,x,y,false); return; }
+    // pick from quay
+    const qy=H-10;
+    if(y>qy-58){
+      const lay=quayLayout();
+      for(let i=0;i<ST.objects.length;i++){
+        const q=ST.objects[i], slot=lay[i];
+        if(!q||!slot){ continue; }
+        if(q.placed||q.fallen) continue;
+        const [sw2,sh2]=shapeSize(shapeRot(TYPES[q.type].cells,q.rot));
+        if(x>=slot.x-4&&x<=slot.x+sw2*slot.s2+4&&y>=qy-58&&y<=qy+4){ beginDrag(q,x,y,true); return; }
+      }
+    }
+  } else if(ST.phase==="crossing"&&!ST.failed){
+    if(ST.anim) return;
+    const o=parcelAt(x,y);
+    if(o&&o.placed&&!o.fallen){
+      if(ST.selected===o.id){ ST.selected=null; }
+      else { ST.selected=o.id; SFX.select(); }
+      return;
+    }
+    if(ST.selected!==null){
+      const sel=ST.objects.find(k=>k.id===ST.selected);
+      const cell=cellAt(x,y);
+      if(sel&&cell){
+        if(tryMove(ST,sel,cell[0],cell[1])){ SFX.move(); }
+        else { // try aligning to shape origin: user may tap any cell of the target footprint
+          const size=shapeSize(shapeRot(TYPES[sel.type].cells,sel.rot));
+          const [c,r]=cell; const oc=Math.max(0,Math.min(sel.col-size[0]+1,Math.min(c, ST.gridW-size[0]))), orr=Math.max(0,Math.min(sel.row-size[1]+1,Math.min(r, ST.gridH-size[1])));
+          // brute: nearest valid origin whose footprint contains the tapped cell
+          let done=false;
+          for(const [tc,tr] of moveTargets(ST,sel)){
+            if(c>=tc&&c<tc+size[0]&&r>=tr&&r<tr+size[1]){ if(tryMove(ST,sel,tc,tr)){SFX.move(); done=true;} break; }
+          }
+          if(!done) ST.selected=null;
+        }
+      }
+    }
+  }
+});
+function beginDrag(o,x,y,fromQuay){
+  drag={oid:o.id,x,y,rot:o.rot,fromQuay,cellOk:false,placeCell:null};
+  o.placed=false; // lifted (kept out of occupancy)
+  SFX.pickup();
+}
+cv.addEventListener("pointermove",e=>{
+  if(!drag) { hoverCell=evPos(e); return; }
+  const [x,y]=evPos(e); drag.x=x; drag.y=y;
+  const o=ST.objects.find(k=>k.id===drag.oid);
+  const g=sceneGeom();
+  const size=shapeSize(shapeRot(TYPES[o.type].cells,drag.rot));
+  const cell=cellAt(x,y);
+  if(cell){
+    const c=Math.min(cell[0],ST.gridW-size[0]), r=Math.min(cell[1],ST.gridH-size[1]);
+    drag.placeCell=[c,r]; drag.cellOk=canPlaceAt(ST,o,c,r,drag.rot);
+  } else { drag.placeCell=null; drag.cellOk=false; }
+});
+window.addEventListener("pointerup",e=>{
+  if(!drag) return;
+  const [x,y]=evPos(e);
+  const o=ST.objects.find(k=>k.id===drag.oid);
+  if(o&&ST.phase==="placement"){
+    if(drag.placeCell&&drag.cellOk){
+      o.placed=true; o.col=drag.placeCell[0]; o.row=drag.placeCell[1]; o.rot=drag.rot;
+      SFX.place();
+    } else if(y>H*0.8){ // back to quay
+      o.placed=false; o.rot=drag.rot;
+    } else { // snap back to previous state (was on deck or quay)
+      o.placed=drag.fromQuay?false:true;
+      if(!drag.fromQuay){ /* col,row unchanged */ }
+    }
+  }
+  drag=null; refreshHUD();
+});
+cv.addEventListener("dblclick",()=>{ if(drag) rotateDrag(); });
+window.addEventListener("keydown",e=>{
+  if(e.key==="r"||e.key==="R"){ rotateDragOrSelection(); }
+  if(e.key==="m"||e.key==="M"){ toggleMute(); }
+  if(e.key==="Escape"){ if(appPhase==="game"&&ST&&ST.phase==="crossing") togglePause(); }
+});
+function rotateDrag(){ if(!drag) return; const o=ST.objects.find(k=>k.id===drag.oid);
+  drag.rot=(drag.rot+1)&3;
+  const size=shapeSize(shapeRot(TYPES[o.type].cells,drag.rot));
+  const cell=cellAt(drag.x,drag.y);
+  if(cell){ const c=Math.min(cell[0],ST.gridW-size[0]), r=Math.min(cell[1],ST.gridH-size[1]);
+    drag.placeCell=[c,r]; drag.cellOk=canPlaceAt(ST,o,c,r,drag.rot); }
+  SFX.click();
+}
+function rotateDragOrSelection(){
+  if(drag){ rotateDrag(); return; }
+  // rotate a selected placement-phase parcel sitting on the quay? rotate last docked? simplest: rotate hovered quay parcel is not tracked — button rotates drag only.
+}
+function toggleMute(){ store.data.mute=!store.data.mute; store.save();
+  $("btnSound").textContent=store.data.mute?"🔇":"🔊"; }
+function togglePause(){
+  if(appPhase!=="game"||!ST||ST.phase!=="crossing") return;
+  paused=!paused;
+  if(paused) show("scrPause"); else hide("scrPause");
+}
+
+/* ---------------- buttons ---------------- */
+$("btnPlay").addEventListener("click",()=>{ SFX.click(); startLevel(store.data.unlocked); });
+$("btnHow").addEventListener("click",()=>{ SFX.click(); show("scrHow"); });
+$("btnHowOk").addEventListener("click",()=>{ SFX.click(); hide("scrHow"); });
+$("btnHome").addEventListener("click",()=>{ SFX.click(); goHome(); });
+$("btnSound").addEventListener("click",()=>{ SFX.unlock(); toggleMute(); });
+$("btnResume").addEventListener("click",()=>{ SFX.click(); togglePause(); });
+$("btnReStack").addEventListener("click",()=>{ SFX.click(); paused=false; hide("scrPause"); startLevel(ST.li); });
+$("btnQuit").addEventListener("click",()=>{ SFX.click(); goHome(); });
+$("btnDepart").addEventListener("click",()=>{
+  SFX.unlock(); const d=departCheck(ST);
+  if(!d.ok){
+    toast(d.over ? (LANG==="fr"?"Trop lourd ! Débarque des colis bonus — la ligne rouge de la jauge CHARGE est dépassée."
+              :LANG==="es"?"¡Demasiado peso! Desembarca bultos extra: superaste la línea roja del medidor CARGA."
+              :"Too heavy! Unload bonus parcels — you are past the red line on the LOAD gauge.")
+              : (LANG==="fr"?"Le manifeste n'est pas complet : chaque colis requis doit être sur le pont."
+              :LANG==="es"?"El manifiesto no está completo: cada bulto obligatorio debe estar en cubierta."
+              :"The manifest is incomplete: every required parcel must be on deck."));
+    return;
+  }
+  depart(ST); SFX.horn();
+  if(ST.li<=1) toast(T("tut4"),6000);
+  refreshHUD();
+});
+$("btnRotate").addEventListener("click",()=>{ if(drag) rotateDrag(); else toast(T("tut1"),2500); });
+$("btnPause").addEventListener("click",()=>{ SFX.click(); togglePause(); });
+$("btnNext").addEventListener("click",()=>{ SFX.click(); startLevel(Math.min(LEVELS.length-1,ST.li+1)); });
+$("btnAgain").addEventListener("click",()=>{ SFX.click(); startLevel(ST.li); });
+$("btnArrHome").addEventListener("click",()=>{ SFX.click(); goHome(); });
+$("btnRetry").addEventListener("click",()=>{ SFX.click(); startLevel(ST.li); });
+$("btnFailHome").addEventListener("click",()=>{ SFX.click(); goHome(); });
+document.querySelectorAll(".lang").forEach(b=>b.addEventListener("click",()=>{
+  LANG=b.dataset.lang; store.data.lang=LANG; store.save(); SFX.click(); applyLang();
+}));
+
+/* ================================================================
+   EVENTS → juice (drains engine event queue)
+   ================================================================ */
+function drainEvents(){
+  if(!ST) return;
+  for(const ev of ST.events){
+    if(ev.kind==="announce"){ SFX.horn();
+      if(ST.li<=1){ const side=ev.side<0?T("wavePort"):T("waveStar"); toast(fmt(T("tut3"),side),5000); } }
+    if(ev.kind==="waveStart") SFX.whoosh();
+    if(ev.kind==="fall"){
+      SFX.splash();
+      const o=ST.objects.find(k=>k.id===ev.id);
+      const g=sceneGeom();
+      const sideX=ev.side<0?g.px-g.deckW*0.5:g.px+g.deckW*0.5;
+      fx.push({kind:"fall",o,x:sideX,y:g.py+g.deckH*0.4,vx:ev.side*30,vy:-40,rot:0,vr:ev.side*3,t:0,dur:0.9});
+      fx.push({kind:"splash",x:sideX,y:g.seaY+16,t:0,dur:0.7,drops:Array.from({length:7},()=>({x:(Math.random()*2-1)*22,y:Math.random()*30}))});
+      if(!o.req) toast(fmt(T("lostOne"),T("typeNames")[o.type]),3500);
+    }
+    if(ev.kind==="arrive"){ finishArrival(); }
+    if(ev.kind==="fail"){ finishFail(); }
+  }
+  ST.events.length=0;
+}
+function stepFx(dt){
+  for(const p of fx){
+    p.t+=dt;
+    if(p.kind==="fall"){ p.x+=p.vx*dt; p.vy+=260*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt; }
+  }
+  fx=fx.filter(p=>p.t<p.dur);
+}
+
+/* ================================================================
+   MAIN LOOP — fixed-step accumulator (frame-rate independent)
+   + watchdog if rAF is throttled
+   ================================================================ */
+let last=0, acc=0, watchdog=null;
+function frame(now){
+  if(!last) last=now;
+  let el=(now-last)/1000; last=now;
+  if(el>0.25) el=0.25; // clamp huge gaps
+  if(!paused){
+    acc+=el;
+    while(acc>=TUNE.STEP){
+      if(ST&&appPhase==="game") stepGame(ST,TUNE.STEP);
+      stepFx(TUNE.STEP);
+      attract.t+=TUNE.STEP;
+      acc-=TUNE.STEP;
+    }
+  } else acc=0;
+  drawScene(now); drainEvents(); if(ST) refreshHUD(); updateBanner();
+  requestAnimationFrame(frame);
+}
+function boot(){
+  store.load();
+  LANG=store.data.lang||((navigator.language||"en").slice(0,2) in I18N?(navigator.language||"en").slice(0,2):"en");
+  $("btnSound").textContent=store.data.mute?"🔇":"🔊";
+  resize(); window.addEventListener("resize",resize);
+  if(typeof ResizeObserver!=="undefined"){ try{ new ResizeObserver(()=>resize()).observe($("stage")); }catch(e){} }
+  applyLang(); goHome();
+  requestAnimationFrame(frame);
+  // watchdog: if rAF stalls (throttled webview), keep time via setTimeout
+  watchdog=setInterval(()=>{
+    const now=performance.now();
+    if(now-last>300){ frame(now); }
+  },250);
+}
+if(typeof document!=="undefined"&&$("cv")) boot();
+
+/* ================================================================
+   QA HOOK (?debug=1) — headless tests drive the engine here
+   ================================================================ */
+if(typeof location!=="undefined"&&/[?&]debug=1/.test(location.search)){
+  window.__cargo={
+    ver:"1.0.0", TUNE, LEVELS, TYPES, I18N,
+    shapeRot, shapeSize, occGrid, weightAboard,
+    state:()=>ST&&JSON.parse(JSON.stringify({...ST,events:[]})),
+    makeState, stepGame, departCheck, depart, tryMove, canPlaceAt, moveTargets,
+    cellsOf, torque, draftRatio, waveTiltAt, tiltTargetOf, scoreOf, lowestObject,
+    place(st,o,col,row,rot){ if(!canPlaceAt(st,o,col,row,rot)) return false;
+      o.placed=true;o.col=col;o.row=row;o.rot=rot; return true; },
+    geom:()=>ST&&sceneGeom(),
+    screenOfCell(c,r){ const tf=shipTransform(performance.now(),ST), g=tf.g;
+      let lx=-g.deckW/2+(c+0.5)*g.cs, ly=-g.deckH/2+(r+0.5)*g.cs;
+      const cA=Math.cos(tf.tilt), sA=Math.sin(tf.tilt);
+      return [g.px+lx*cA-ly*sA, g.py+tf.sink+tf.bob+lx*sA+ly*cA]; },
+    quaySlots:()=>quayLayout(),
+    tick(n,dt){ for(let i=0;i<n;i++) stepGame(ST,dt||TUNE.STEP); },
+    lang:()=>LANG,
+  };
+}
+</script>
+</body>
+</html>
