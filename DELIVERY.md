@@ -1,7 +1,22 @@
-# DELIVERY — Fragile Cargo v1.0.0 (2026-11-01)
+# DELIVERY — Fragile Cargo v1.0.1 (2026-11-01)
 
 Delivery note for the LOB7 edition. Honest account of what was tested, tuned
 and what remains approximate.
+
+## v1.0.1 — dry dock (player report, 2026-11-01 early morning)
+
+Cédric reported the waiting parcels looked *submerged at the bottom of the
+sea* instead of sitting on a quay. Root cause: the dock and its staged
+parcels were drawn **before** the translucent foreground wave bands, which
+painted over them (plus the dock floated mid-sea with no support). Fix:
+
+- the foreground water bands and foam are now drawn **first**, the pier
+  **after**, so staged cargo stays dry and fully readable;
+- the pier reads as a floating dock: pilings standing in the water below the
+  plank, dry top lip, slightly larger staged parcels (38 px cells).
+Verified by pixel probes (staged parcels return their true card/wood
+colours, no cyan veil; plank and water bands distinct) and the full 16/16
+test-suite re-run.
 
 ## Specification interpretation
 

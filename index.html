@@ -837,32 +837,6 @@ function drawScene(nowMs){
   }
   ctx2.restore(); // end ship rotation
 
-  // quay (placement) — wooden dock at bottom of scene
-  if(inGame&&st.phase==="placement"){
-    const qy=H-10;
-    ctx2.fillStyle="#b98a5a"; rr(10,qy-40,W-20,44,8); ctx2.fill();
-    ctx2.strokeStyle="#8a5a33"; ctx2.lineWidth=2;
-    for(let i=1;i<6;i++){ ctx2.beginPath(); ctx2.moveTo(10+(W-20)*i/6,qy-40); ctx2.lineTo(10+(W-20)*i/6,qy+4); ctx2.stroke(); }
-    let qx=18;
-    for(const o of st.objects){
-      if(o.placed||o.fallen||(drag&&drag.oid===o.id)) continue;
-      const [sw2]=shapeSize(shapeRot(TYPES[o.type].cells,o.rot));
-      const s2=quayCellPx();
-      drawParcel(o,qx,qy-40,s2);
-      qx+=sw2*s2+14;
-    }
-  }
-  // drag ghost
-  if(drag){
-    const o=st.objects.find(o=>o.id===drag.oid);
-    if(o){
-      const s3=cs-6;
-      const ok=drag.cellOk;
-      ctx2.globalAlpha=.85;
-      drawParcel(o,drag.x-s3/2,drag.y-s3/2,s3);
-      ctx2.globalAlpha=1;
-    }
-  }
   // sea foreground bands (translucent: a dipping deck stays readable through the water)
   ctx2.fillStyle="rgba(53,196,215,.55)";
   ctx2.beginPath(); ctx2.moveTo(0,g.seaY+14);
@@ -877,6 +851,37 @@ function drawScene(nowMs){
   for(let i=0;i<14;i++){
     const fxp=(i*97+t*40)%W, fyp=g.seaY+18+((i*53)%40);
     if(Math.sin(t*3+i)>0.55) { ctx2.fillRect(fxp,fyp,3,3); }
+  }
+  // quay (placement) — foreground floating pier, drawn AFTER the water so waiting cargo stays DRY
+  if(inGame&&st.phase==="placement"){
+    const qy=H-18;
+    // pilings standing in the water, visible below the plank
+    ctx2.fillStyle="#7a5533";
+    for(let i=0;i<7;i++){ const pxq=16+(W-32)*i/6; ctx2.fillRect(pxq-4,qy-30,8,44); }
+    // plank deck
+    ctx2.fillStyle="#b98a5a"; rr(10,qy-40,W-20,44,8); ctx2.fill();
+    ctx2.strokeStyle="#8a5a33"; ctx2.lineWidth=2;
+    for(let i=1;i<6;i++){ ctx2.beginPath(); ctx2.moveTo(10+(W-20)*i/6,qy-40); ctx2.lineTo(10+(W-20)*i/6,qy+4); ctx2.stroke(); }
+    // dry top lip
+    ctx2.fillStyle="#d8a874"; ctx2.fillRect(14,qy-40,W-28,5);
+    let qx=20;
+    for(const o of st.objects){
+      if(o.placed||o.fallen||(drag&&drag.oid===o.id)) continue;
+      const [sw2]=shapeSize(shapeRot(TYPES[o.type].cells,o.rot));
+      const s2=quayCellPx();
+      drawParcel(o,qx,qy-40,s2);
+      qx+=sw2*s2+16;
+    }
+  }
+  // drag ghost
+  if(drag){
+    const o=st.objects.find(o=>o.id===drag.oid);
+    if(o){
+      const s3=cs-6;
+      ctx2.globalAlpha=.85;
+      drawParcel(o,drag.x-s3/2,drag.y-s3/2,s3);
+      ctx2.globalAlpha=1;
+    }
   }
   // falling parcels + splashes (screen space)
   for(const p of fx){
@@ -1038,7 +1043,7 @@ function updateBanner(){
    INPUT (pointer + keyboard)
    ================================================================ */
 function evPos(e){ const r=cv.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; }
-function quayCellPx(){ return Math.min(sceneGeom().cs-8, 34); }
+function quayCellPx(){ return Math.min(sceneGeom().cs-8, 38); }
 function quayLayout(){ // x positions of staged parcels on the dock (matches drawing)
   const out=[]; let qx=18; const s2=quayCellPx();
   for(const q of (ST?ST.objects:[])){
