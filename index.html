@@ -281,7 +281,7 @@ en:{
   arrTitle:"Delivered!", failTitle:"Lost at sea…",
   sReq:"Required cargo delivered", sBonus:"Bonus cargo delivered", sSafe:"Steady sailing",
   sTotal:"Total score", best:"Best: {n}", locked:"Sail earlier crossings to unlock.",
-  tut1:"Welcome aboard! Drag every parcel from the dock onto the deck. Heavy parcels near the middle — that keeps her level.",
+  tut1:"Moored at the dock, the sea is calm — but she already lists under her cargo! Drag parcels aboard: heavy ones near the middle keep her level.",
   tut2:"See the LOAD gauge: the more weight you take, the deeper she sits and the harder waves hit. Press SET SAIL when the manifest is aboard.",
   tut3:"A wave is coming: {side}. Slide one parcel towards the OPPOSITE side to lean against it.",
   tut4:"Red needle = cargo at risk: stay tilted too long and the low-side parcels fall. Tap a parcel, then a green cell.",
@@ -308,7 +308,7 @@ fr:{
   arrTitle:"Livré !", failTitle:"Perdu en mer…",
   sReq:"Cargaison requise livrée", sBonus:"Cargaison bonus livrée", sSafe:"Barre régulière",
   sTotal:"Score total", best:"Record : {n}", locked:"Termine les traversées précédentes pour débloquer.",
-  tut1:"Bienvenue à bord ! Dépose chaque colis du quai sur le pont. Les colis lourds au milieu — le bateau reste droit.",
+  tut1:"Amarré à quai, la mer est d'huile — mais le bateau gîte déjà sous la cargaison ! Dépose les colis : les lourds au milieu pour rester droit.",
   tut2:"Regarde la jauge CHARGE : plus tu embarques, plus le bateau s'enfonce et plus les vagues frappent fort. Lève l'ancre quand le manifeste est à bord.",
   tut3:"Une vague arrive : {side}. Fais glisser un colis du côté OPPOSÉ pour contrer.",
   tut4:"Aiguille dans le rouge = cargaison en péril : trop longtemps incliné, les colis du côté bas tombent. Touche un colis, puis une case verte.",
@@ -335,7 +335,7 @@ es:{
   arrTitle:"¡Entregado!", failTitle:"Perdido en el mar…",
   sReq:"Carga obligatoria entregada", sBonus:"Carga extra entregada", sSafe:"Navegación estable",
   sTotal:"Puntuación total", best:"Récord: {n}", locked:"Completa las travesías anteriores para desbloquear.",
-  tut1:"¡Bienvenido a bordo! Arrastra cada bulto del muelle a la cubierta. Los pesados al centro: el barco se mantiene derecho.",
+  tut1:"Amarrado en el muelle, el mar está en calma — ¡pero el barco ya escora con la carga! Coloca los bultos: los pesados al centro.",
   tut2:"Mira el medidor CARGA: cuánto más peso, más se hunde el barco y más fuerte golpean las olas. Zarpa cuando el manifiesto esté a bordo.",
   tut3:"Viene una ola: {side}. Desliza un bulto hacia el lado OPUESTO para contrarrestarla.",
   tut4:"Aguja en rojo = carga en peligro: si escoras demasiado, los bultos del lado bajo caen. Toca un bulto y luego una celda verde.",
@@ -644,7 +644,11 @@ function shipTransform(nowMs, st){
   const g=sceneGeom();
   const t=nowMs/1000;
   const inGame=appPhase==="game"&&st;
-  const tilt = inGame&&st.phase==="crossing" ? st.tilt*Math.PI/180 : 0;
+  let tilt = 0;
+  if(inGame&&st.phase==="crossing") tilt = st.tilt*Math.PI/180;
+  else if(inGame&&st.phase==="placement")
+    // moored at the dock: dead-calm sea, but she ALREADY lists under her cargo (live feedback)
+    tilt = (Math.max(-10,Math.min(10,TUNE.TILT_K*torque(st)*0.35)) + Math.sin(t*0.7)*1.2)*Math.PI/180;
   const draft = inGame ? draftRatio(st) : 0.3;
   const sink = 4+26*Math.min(1.25,draft)/1.25;
   const bob = Math.sin(t*1.4)*2.2;
@@ -811,6 +815,17 @@ function drawScene(nowMs){
   ctx2.fillStyle="#e2502f"; ctx2.beginPath();
   ctx2.moveTo(ccx+2,dy0-cs*0.95); ctx2.lineTo(ccx+2+cs*0.55+Math.sin(t*3)*3,dy0-cs*0.82); ctx2.lineTo(ccx+2,dy0-cs*0.68); ctx2.closePath(); ctx2.fill();
 
+  // placement: footprint preview under the dragged parcel (green = drop ok)
+  if(inGame&&st.phase==="placement"&&drag&&drag.placeCell){
+    const dO=st.objects.find(k=>k.id===drag.oid);
+    if(dO){
+      ctx2.fillStyle = drag.cellOk ? "rgba(46,158,107,.45)" : "rgba(229,72,77,.4)";
+      for(const [pc,pr] of shapeRot(TYPES[dO.type].cells,drag.rot).map(([x,y])=>[drag.placeCell[0]+x,drag.placeCell[1]+y])){
+        rr(dx0+pc*cs+3,dy0+pr*cs+3,cs-6,cs-6,5); ctx2.fill();
+      }
+    }
+  }
+
   // move targets highlight
   if(inGame&&st.phase==="crossing"&&st.selected!==null&&!st.anim){
     const o=st.objects.find(o=>o.id===st.selected);
@@ -837,6 +852,20 @@ function drawScene(nowMs){
   }
   ctx2.restore(); // end ship rotation
 
+  // mooring lines while loading at the dock (explains the calm: she is tied up)
+  if(inGame&&st.phase==="placement"){
+    const tfm=shipTransform(nowMs,st), gm=tfm.g;
+    const toScr=(lx,ly)=>{ const cA=Math.cos(tfm.tilt),sA=Math.sin(tfm.tilt);
+      return [gm.px+lx*cA-ly*sA, gm.py+tfm.sink+tfm.bob+lx*sA+ly*cA]; };
+    const bow=toScr(gm.deckW/2+cs*0.25, gm.deckH/2+cs*0.3);
+    const stern=toScr(-gm.deckW/2-cs*0.25, gm.deckH/2+cs*0.3);
+    ctx2.strokeStyle="#8a5a33"; ctx2.lineWidth=3.5; ctx2.lineCap="round";
+    ctx2.beginPath(); ctx2.moveTo(bow[0],bow[1]);
+    ctx2.quadraticCurveTo(gm.px+gm.deckW*0.55,H*0.72,W*0.965,H-26); ctx2.stroke();
+    ctx2.beginPath(); ctx2.moveTo(stern[0],stern[1]);
+    ctx2.quadraticCurveTo(gm.px-gm.deckW*0.55,H*0.72,W*0.035,H-26); ctx2.stroke();
+    ctx2.lineCap="butt";
+  }
   // sea foreground bands (translucent: a dipping deck stays readable through the water)
   ctx2.fillStyle="rgba(53,196,215,.55)";
   ctx2.beginPath(); ctx2.moveTo(0,g.seaY+14);
@@ -940,12 +969,13 @@ function refreshHUD(){
       }
       setHTML("manifest",html);
     }
-    // tilt
+    // tilt (placement shows the live listing preview so the gauge reacts while loading)
+    const dispTilt = st.phase==="crossing" ? st.tilt : shipTransform(performance.now(),st).tilt*180/Math.PI;
     const n=$("tiltNeedle");
-    const p=50+Math.max(-1,Math.min(1,st.tilt/TUNE.TILT_MAX))*46;
+    const p=50+Math.max(-1,Math.min(1,dispTilt/TUNE.TILT_MAX))*46;
     n.style.left=p+"%";
-    $("tiltVal").textContent=Math.round(st.tilt)+"°";
-    $("tiltGauge").classList.toggle("crit",Math.abs(st.tilt)>=TUNE.DANGER_TILT);
+    $("tiltVal").textContent=Math.round(dispTilt)+"°";
+    $("tiltGauge").classList.toggle("crit",Math.abs(dispTilt)>=TUNE.DANGER_TILT);
     // load
     const dr=draftRatio(st), fill=$("loadFill");
     fill.style.height=Math.min(100,dr/1.25*100)+"%";
